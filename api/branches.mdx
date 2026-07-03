@@ -1,0 +1,309 @@
+---
+title: "Branches API: Manage Ferreandina Store Locations"
+sidebarTitle: "Branches"
+description: "CRUD endpoints for Ferreandina branch locations. Each branch embeds its product inventory and worker list. Base path: /api/branches."
+---
+
+The **Branch** resource represents a physical Ferreandina hardware store location. Each branch document stores the branch name, city, street address, main-branch flag, and a cover image URL. Two embedded arrays are also maintained directly inside the branch document: a `products` array capturing current inventory (product ID, name, quantity, and image) and a `workers` array listing staff assigned to that branch (worker ID, name, and image). All CRUD operations are available at `/api/branches`. Four additional aggregation-based queries (e.g., city lookups, inventory reports) are also supported — see [Advanced Queries](/api/advanced-queries).
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the branch.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Slug-style name for the branch (e.g., `"ferreandina-manizales"`).
+</ResponseField>
+
+<ResponseField name="city" type="string" required>
+  City where the branch is located (e.g., `"manizales"`).
+</ResponseField>
+
+<ResponseField name="direction" type="string" required>
+  Street address of the branch (e.g., `"Cra 3 #23-12"`).
+</ResponseField>
+
+<ResponseField name="is_main" type="boolean" required>
+  Whether this is the main/headquarters branch.
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the branch cover image.
+</ResponseField>
+
+<ResponseField name="products" type="array" required>
+  Embedded array of products currently stocked at this branch.
+  <Expandable title="Product item">
+    <ResponseField name="_id" type="integer">
+      Product identifier (references the Products collection).
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Product name slug (e.g., `"hammer"`).
+    </ResponseField>
+    <ResponseField name="quantity" type="integer">
+      Units in stock at this branch.
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      URL of the product image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="workers" type="array" required>
+  Embedded array of workers assigned to this branch.
+  <Expandable title="Worker item">
+    <ResponseField name="_id" type="integer">
+      Worker identifier (references the Workers collection).
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Full name of the worker.
+    </ResponseField>
+    <ResponseField name="image" type="string">
+      URL of the worker's profile image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/branches
+
+Returns an array of all branch documents.
+
+```bash
+curl http://localhost:7070/api/branches
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "name": "ferreandina-manizales",
+    "city": "manizales",
+    "direction": "Cra 3 #23-12",
+    "is_main": false,
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/branches/ferreandina-manizales.webp",
+    "products": [ ... ],
+    "workers": [ ... ]
+  }
+]
+```
+
+---
+
+### GET /api/branches/\{id\}
+
+Returns a single branch by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/branches/1
+```
+
+```json
+{
+  "_id": 1,
+  "name": "ferreandina-manizales",
+  "city": "manizales",
+  "direction": "Cra 3 #23-12",
+  "is_main": false,
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/branches/ferreandina-manizales.webp",
+  "products": [
+    {
+      "_id": 1,
+      "name": "hammer",
+      "quantity": 10,
+      "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+    }
+  ],
+  "workers": [
+    {
+      "_id": 1,
+      "name": "Eduardo Sánchez",
+      "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/1.jpg"
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/branches
+
+Creates a new branch. Send all required fields as a JSON body.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new branch.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Slug-style branch name.
+</ParamField>
+
+<ParamField body="city" type="string" required>
+  City of the branch.
+</ParamField>
+
+<ParamField body="direction" type="string" required>
+  Street address of the branch.
+</ParamField>
+
+<ParamField body="is_main" type="boolean" required>
+  Set `true` if this is the headquarters branch.
+</ParamField>
+
+<ParamField body="image" type="string">
+  URL for the branch cover image.
+</ParamField>
+
+<ParamField body="products" type="array">
+  Initial embedded product inventory array.
+</ParamField>
+
+<ParamField body="workers" type="array">
+  Initial embedded worker array.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/branches \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 2,
+    "name": "ferreandina-bogota",
+    "city": "bogota",
+    "direction": "Calle 72 #10-34",
+    "is_main": true,
+    "image": "https://example.com/bogota.webp",
+    "products": [],
+    "workers": []
+  }'
+```
+
+```json
+{ "insertedId": 2 }
+```
+
+---
+
+### PATCH /api/branches/\{id\}
+
+Partially updates an existing branch. Only include the fields you want to change.
+
+**Request Body**
+
+<ParamField body="name" type="string">
+  Updated branch name.
+</ParamField>
+
+<ParamField body="city" type="string">
+  Updated city.
+</ParamField>
+
+<ParamField body="direction" type="string">
+  Updated street address.
+</ParamField>
+
+<ParamField body="is_main" type="boolean">
+  Updated main-branch flag.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated cover image URL.
+</ParamField>
+
+<ParamField body="products" type="array">
+  Replacement products array.
+</ParamField>
+
+<ParamField body="workers" type="array">
+  Replacement workers array.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/branches/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "direction": "Cra 5 #45-20" }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/branches/\{id\}
+
+Deletes the branch with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/branches/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+## Special Endpoints
+
+Four additional query endpoints exist for branches (city filtering, inventory aggregations, and more). See [Advanced Queries](/api/advanced-queries) for the full reference.
+
+---
+
+## Example Document
+
+```json
+{
+  "_id": 1,
+  "name": "ferreandina-manizales",
+  "city": "manizales",
+  "direction": "Cra 3 #23-12",
+  "is_main": false,
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/branches/ferreandina-manizales.webp",
+  "products": [
+    {
+      "_id": 1,
+      "name": "hammer",
+      "quantity": 10,
+      "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+    },
+    {
+      "_id": 3,
+      "name": "power_drill",
+      "quantity": 4500,
+      "image": "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQabipjJj6zlLRVhlf8dq6SNxXqeyfGTFRu20wY_kaSZfhmzl1CzisyBZNKrUUW"
+    },
+    {
+      "_id": 4,
+      "name": "drywall_screws",
+      "quantity": 6500,
+      "image": "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQi8_UnoQjJPtKL3J0IGaWxtNTU9WCyoesNjaAf-Q4dbkwD1TCh7HKVUDvH2JL5"
+    },
+    {
+      "_id": 5,
+      "name": "copper_wire_12awg",
+      "quantity": 2300,
+      "image": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcRSeOJ-CxlNs5ztlkT-_cOfG3Rpwu56JL_hR8Us67qji9uweafOVFqeaRCowpEU"
+    }
+  ],
+  "workers": [
+    {
+      "_id": 1,
+      "name": "Eduardo Sánchez",
+      "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/1.jpg"
+    },
+    {
+      "_id": 2,
+      "name": "Santiago Marin",
+      "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/2.jpg"
+    }
+  ]
+}
+```

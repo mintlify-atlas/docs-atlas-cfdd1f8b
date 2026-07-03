@@ -1,0 +1,160 @@
+---
+title: "Configure MongoDB Connection and Environment"
+sidebarTitle: "Configuration"
+description: "Configure the Ferreandina backend via a .env file. Covers MONGODB_URI, MONGODB_DB_NAME, POJO codec setup, and CORS configuration."
+---
+
+The Ferreandina backend reads all runtime configuration from a `.env` file using the [dotenv-java](https://github.com/cdimascio/dotenv-java) library. The `.env` file is loaded inside `Connection.java` the moment any controller opens its first MongoDB collection — no system-level environment variables or JVM flags are needed.
+
+## Environment Variables
+
+Both variables are **required**. The application will throw an exception at startup if either is missing from the `.env` file.
+
+<ParamField path="MONGODB_URI" type="string" required>
+  The full MongoDB connection string. Use `mongodb://localhost:27017` for a local instance or a `mongodb+srv://...` URI for MongoDB Atlas.
+</ParamField>
+
+<ParamField path="MONGODB_DB_NAME" type="string" required>
+  The name of the MongoDB database to connect to, e.g. `ferreandina`. The database will be created automatically by MongoDB if it does not already exist.
+</ParamField>
+
+### .env file example
+
+Place this file in `app/bc/` (the same directory where you run `./gradlew run`):
+
+```env
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB_NAME=ferreandina
+```
+
+## MongoDB Connection
+
+`Connection<T extends Model>` is a generic class that encapsulates the full lifecycle of a MongoDB connection for a single collection. When constructed it:
+
+1. Loads `.env` via `Dotenv.load()` and reads `MONGODB_URI` and `MONGODB_DB_NAME`.
+2. Calls `createProviders()` to build a POJO-aware `CodecRegistry`.
+3. Calls `initMongo()` to create the `MongoClient` and obtain a `MongoDatabase` reference with the custom codec applied.
+
+Controllers call `setCollection(name)` to bind the connection to a specific MongoDB collection, storing it in the public `collection` field for direct use by the service layer.
+
+```java
+package com.ferreandina.database;
+
+import org.bson.codecs.configuration.CodecProvider;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.PojoCodecProvider;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+
+import com.ferreandina.models.Model;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+import io.github.cdimascio.dotenv.Dotenv;
+
+public class Connection<T extends Model> {
+    private String uri;
+    private String dbName;
+    private CodecRegistry customCodec;
+    private Class<T> model;
+    public MongoClient client;
+    public MongoDatabase db;
+    public MongoCollection<T> collection;
+
+    public Connection(Class<T> clazz) {
+        this.model = clazz;
+        Dotenv env = Dotenv.load();
+        this.uri = env.get("MONGODB_URI");
+        this.dbName = env.get("MONGODB_DB_NAME");
+
+        System.out.println(uri);
+        System.out.println(dbName);
+        this.createProviders();
+        this.initMongo();
+    }
+
+    private final void createProviders() {
+        CodecProvider customClassBuilder = PojoCodecProvider.builder().automatic(true).build();
+        this.customCodec = fromRegistries(
+                MongoClientSettings.getDefaultCodecRegistry(),
+                fromProviders(customClassBuilder));
+    }
+
+    private final void initMongo() {
+        this.client = MongoClients.create(uri);
+        this.db = this.client.getDatabase(this.dbName).withCodecRegistry(this.customCodec);
+    }
+
+    public final MongoCollection<T> getCollection(String name) {
+        return this.db.getCollection(name, this.model);
+    }
+
+    public final void setCollection(String name) {
+        this.collection = this.getCollection(name);
+    }
+
+    public final void printCollection(String name) {
+        for (T m : this.collection.find()) {
+            System.out.println(m.toString());
+        }
+    }
+}
+```
+
+## POJO Codec Configuration
+
+The `createProviders()` method registers a `PojoCodecProvider` built with `.automatic(true)`. This instructs the MongoDB driver to automatically map BSON documents to and from any Java POJO it encounters — no manual field mapping or custom codecs are required for model classes.
+
+```java
+private final void createProviders() {
+    CodecProvider customClassBuilder = PojoCodecProvider.builder().automatic(true).build();
+    this.customCodec = fromRegistries(
+            MongoClientSettings.getDefaultCodecRegistry(),
+            fromProviders(customClassBuilder));
+}
+```
+
+The resulting `CodecRegistry` is composed from two layers:
+
+1. **`MongoClientSettings.getDefaultCodecRegistry()`** — handles all primitive types, `ObjectId`, `BsonValue`, `Date`, etc.
+2. **`fromProviders(customClassBuilder)`** — handles automatic POJO serialization for model classes (e.g., `BranchModel`, `ProductModel`).
+
+The combined registry is applied to the `MongoDatabase` instance via `withCodecRegistry(this.customCodec)`, so every collection opened from that database inherits POJO support automatically.
+
+## CORS
+
+`App.java` enables CORS globally using Javalin's bundled plugin, configured with `anyHost()`:
+
+```java
+config.bundledPlugins.enableCors(cors -> {
+    cors.addRule(it -> {
+        it.anyHost();
+    });
+});
+```
+
+This allows any origin to call the API, which is convenient during local development when the frontend and backend run on different ports.
+
+<Warning>
+  `anyHost()` permits cross-origin requests from **every** domain. Before deploying to a production or staging environment, replace it with an explicit allowed-origins list to prevent unauthorized browsers from calling your API.
+
+  ```java
+  cors.addRule(it -> {
+      it.allowHost("https://your-frontend-domain.com");
+  });
+  ```
+</Warning>
+
+## MongoDB Atlas
+
+To connect to a cloud-hosted Atlas cluster, replace `MONGODB_URI` with the Atlas connection string found in the **Connect** dialog of your cluster. No code changes are needed — `Connection.java` uses the URI as-is.
+
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net
+MONGODB_DB_NAME=ferreandina
+```
+
+Make sure your Atlas cluster's Network Access list includes the IP address of the machine running the backend, or set it to `0.0.0.0/0` for unrestricted access during development.

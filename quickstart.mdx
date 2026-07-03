@@ -1,47 +1,130 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Ferreandina NoSQL"
+sidebarTitle: "Quickstart"
+description: "Run the Ferreandina backend API and React frontend locally in minutes. Covers prerequisites, environment setup, and your first API call."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+This guide walks you through running the complete Ferreandina NoSQL stack on your local machine — the Java/Javalin REST API listening on port **7070** and the React frontend served by Vite on port **5173**. By the end you will have both tiers running, connected to a local (or Atlas) MongoDB instance, and be able to make your first API call.
 
 ## Prerequisites
 
-Before you begin, you must have:
+<Note>
+  Make sure the following tools are installed and available on your `PATH` before proceeding:
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+  - **Java 21+** — required by the Gradle toolchain configuration in `build.gradle.kts`
+  - **Gradle** — or simply use the included `gradlew` wrapper (no separate install needed)
+  - **Node.js 18+** — required by Vite and the frontend toolchain
+  - **pnpm** — the frontend package manager used by the project (`npm install -g pnpm`)
+  - **MongoDB 6+** — a local `mongod` instance or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
+</Note>
 
-## Get started
+## Setup Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Clone the repository">
+    Download the project source from GitHub and navigate into the root directory.
 
     ```bash
-    npm install your-package
+    git clone https://github.com/tutosrive/ferreandina-nosql.git
+    cd ferreandina-nosql
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
+  <Step title="Configure the backend">
+    The backend reads its database connection details from a `.env` file located at `app/bc/.env`, loaded at runtime by [dotenv-java](https://github.com/cdimascio/dotenv-java) inside `Connection.java`.
+
+    Create the file with your MongoDB connection string and database name:
+
+    ```env
+    MONGODB_URI=mongodb://localhost:27017
+    MONGODB_DB_NAME=ferreandina
     ```
+
+    `MONGODB_URI` is passed directly to `MongoClients.create()` and `MONGODB_DB_NAME` selects the target database. If you are using MongoDB Atlas, replace `MONGODB_URI` with your full Atlas connection string (e.g. `mongodb+srv://user:pass@cluster.mongodb.net`).
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+
+  <Step title="Start the backend">
+    Use the Gradle wrapper to compile and run the API server. The first build will download all dependencies automatically.
 
     ```bash
-    your-cli start
+    cd app/bc
+    ./gradlew run
     ```
+
+    The Javalin server starts on port **7070** as configured in `App.java`:
+
+    ```java
+    Javalin.create(config -> {
+        new Routes(config);
+        config.bundledPlugins.enableCors(cors -> {
+            cors.addRule(it -> { it.anyHost(); });
+        });
+    }).start(7070);
+    ```
+
+    You should see Javalin's startup log followed by the MongoDB URI and database name echoed to the console.
+  </Step>
+
+  <Step title="Configure the frontend">
+    The React app uses an Axios instance whose `baseURL` is read from the `VITE_API_URL` environment variable. Create `app/fr/.env` pointing at the running backend:
+
+    ```env
+    VITE_API_URL=http://localhost:7070/
+    ```
+
+    If `VITE_API_URL` is not set, `axios.config.ts` falls back to `http://localhost:8080/`, so setting this variable explicitly is recommended.
+  </Step>
+
+  <Step title="Start the frontend">
+    Install dependencies with pnpm and launch the Vite development server from the `app/fr` directory.
+
+    ```bash
+    cd app/fr
+    pnpm install
+    pnpm dev
+    ```
+
+    Vite will start the development server and print a local URL — by default **http://localhost:5173**. Open that address in your browser to access the Ferreandina UI.
+  </Step>
+
+  <Step title="Verify the API is running">
+    With the backend running, send a request to the branches endpoint to confirm everything is wired up correctly:
+
+    ```bash
+    curl http://localhost:7070/api/branches
+    ```
+
+    You should receive a JSON array in response. An empty array (`[]`) is expected if the database has no data yet — see the **Seed Data** section below to populate it.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Seed Data
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+The `config/collections/` directory contains JSON seed documents for all nine MongoDB collections:
+
+| File | Collection |
+|---|---|
+| `branches.json` | `branches` |
+| `categories.json` | `categories` |
+| `customers.json` | `customers` |
+| `invoice.json` | `invoice` |
+| `price_changes.json` | `price_changes` |
+| `products.json` | `products` |
+| `suppliers.json` | `suppliers` |
+| `supplies.json` | `supplies` |
+| `workers.json` | `workers` |
+
+Use `mongoimport` to load any collection into your local database. For example, to import the products collection:
+
+```bash
+mongoimport --uri "mongodb://localhost:27017/ferreandina" \
+  --collection products \
+  --file config/collections/products.json \
+  --jsonArray
+```
+
+Repeat the command for each file, replacing `products` with the relevant collection name. Run these commands from the repository root so the relative file paths resolve correctly.
+
+<Tip>
+  The repository root contains **`Ferreandina-Bruno-Requests.zip`** — a [Bruno](https://www.usebruno.com/) request collection with pre-built requests for every API endpoint. Import it into Bruno to explore and test all routes (branches, categories, products, suppliers, supplies, customers, and workers) without writing any curl commands.
 </Tip>

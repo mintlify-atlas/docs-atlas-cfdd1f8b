@@ -1,0 +1,148 @@
+---
+title: "Build and Run the Javalin Backend Server"
+sidebarTitle: "Setup"
+description: "Step-by-step guide to building and running the Ferreandina Java backend. Covers Gradle build, environment variables, and starting the API server."
+---
+
+The Ferreandina backend lives in the `app/bc` module. It is a Java 21 REST API built on top of [Javalin 7](https://javalin.io/) and backed by MongoDB. The server listens on port **7070** and is managed entirely by the Gradle 9 build system — no additional tooling installation is required.
+
+## Prerequisites
+
+- **Java 21 or later** must be installed and available on your `PATH`. The Gradle toolchain block in `build.gradle.kts` pins the JDK version to 21, so the build will fail fast if an incompatible JDK is detected.
+- **Gradle wrapper is included** (`gradlew` / `gradlew.bat`). You do **not** need to install Gradle separately — all commands below use the wrapper.
+
+## Project Structure
+
+```
+app/bc/
+├── app/
+│   └── src/main/java/com/ferreandina/
+│       ├── App.java            # Entry point, Javalin config
+│       ├── controllers/        # Resource controllers
+│       ├── database/           # MongoDB connection
+│       ├── models/             # POJO models
+│       ├── routes/             # Route definitions
+│       ├── services/           # Data access layer
+│       └── utils/              # Helpers (ResultUtil, Validator, Utils)
+├── gradle/
+├── gradlew
+└── build.gradle.kts
+```
+
+## Dependencies
+
+The following key libraries are declared in `app/build.gradle.kts`:
+
+| Artifact | Version | Purpose |
+|---|---|---|
+| `io.javalin:javalin` | `7.2.2` | HTTP framework and route DSL |
+| `org.mongodb:mongodb-driver-bom` | `5.7.0` | MongoDB Java driver (BOM — pins all sub-modules) |
+| `org.mongodb:mongodb-driver-sync` | _(from BOM)_ | Synchronous MongoDB client |
+| `com.fasterxml.jackson.core:jackson-databind` | `2.21.2` | JSON serialization used by Javalin |
+| `io.github.cdimascio:dotenv-java` | `3.2.0` | Loads `.env` file into the runtime environment |
+| `org.json:json` | `20260522` | JSON object/array building for responses |
+| `org.slf4j:slf4j-simple` | `2.0.17` | Logging backend for Javalin |
+
+## Running the Server
+
+<Steps>
+  <Step title="Navigate to the backend module">
+    All Gradle commands must be run from the `app/bc` directory, where the Gradle wrapper and `build.gradle.kts` reside.
+
+    ```bash
+    cd app/bc
+    ```
+  </Step>
+
+  <Step title="Create the .env file">
+    The application reads database credentials from a `.env` file placed in the **same directory you run the command from** (i.e., `app/bc/`). Create it with the two required variables:
+
+    ```env
+    MONGODB_URI=mongodb://localhost:27017
+    MONGODB_DB_NAME=ferreandina
+    ```
+
+    See the [Configuration](/backend/configuration) page for full details, including MongoDB Atlas URIs.
+  </Step>
+
+  <Step title="Start the server">
+    Use the Gradle wrapper to compile and launch the application:
+
+    ```bash
+    # Linux / macOS
+    ./gradlew run
+
+    # Windows
+    gradlew.bat run
+    ```
+
+    Gradle will resolve dependencies on the first run, compile all source files, and start the Javalin server. You should see output similar to:
+
+    ```
+    mongodb://localhost:27017
+    ferreandina
+    [main] INFO io.javalin.Javalin - Javalin started in 312ms \o/
+    [main] INFO io.javalin.Javalin - Listening on http://localhost:7070/
+    ```
+  </Step>
+
+  <Step title="Verify the server is running">
+    Send a request to the branches endpoint to confirm the API is live:
+
+    ```bash
+    curl http://localhost:7070/api/branches
+    ```
+
+    A successful response returns a JSON envelope like:
+
+    ```json
+    {
+      "message": "There are all BranchModels",
+      "status": 200,
+      "data": [...],
+      "size": 3
+    }
+    ```
+  </Step>
+</Steps>
+
+## Entry Point — App.java
+
+The `App` class is the single entry point for the entire server. It creates a Javalin instance, wires up all routes via `Routes`, enables CORS, and starts the HTTP listener on port 7070.
+
+```java
+package com.ferreandina;
+
+import com.ferreandina.routes.Routes;
+
+import io.javalin.Javalin;
+
+public class App {
+    public static void main(String[] args) {
+        Javalin.create(
+                config -> {
+                    new Routes(config);
+
+                    config.bundledPlugins.enableCors(cors -> {
+                        cors.addRule(it -> {
+                            it.anyHost();
+                        });
+                    });
+                }).start(7070);
+    }
+}
+```
+
+<Note>
+  The `run` task in `build.gradle.kts` is configured with `inputs.files` pointing at `src/main/java/**/*.java`. This tells Gradle to treat any Java source change as an input change, so re-running `./gradlew run` after editing a source file will trigger a recompile rather than using the cached output.
+
+  ```kotlin
+  tasks.named("run") {
+      inputs.files(
+          fileTree("src/main/java") {
+              include("**/*.java")
+          }
+      )
+  }
+  ```
+</Note>

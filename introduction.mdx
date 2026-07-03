@@ -1,0 +1,80 @@
+---
+title: "Ferreandina NoSQL: Hardware Store Management System"
+sidebarTitle: "Introduction"
+description: "Ferreandina NoSQL is a full-stack hardware store platform built on MongoDB, Java/Javalin, and React. Learn what it does and how it's organized."
+---
+
+Ferreandina NoSQL is a university project developed at UCALDAS by Eduardo and Santiago. It is a complete hardware store management system that handles branches, products, categories, suppliers, supplies, customers, and workers — all backed by a MongoDB document database. The system is built as a two-tier application: a RESTful Java/Javalin API on the backend and a React single-page application on the frontend, communicating over HTTP with full CORS support.
+
+## What It Does
+
+<CardGroup cols={2}>
+  <Card title="Inventory Management" icon="boxes-stacked">
+    Track products and categories across all store locations. Filter products by category, monitor low-stock items per branch, and remove out-of-stock entries with a single API call.
+  </Card>
+  <Card title="Branch Management" icon="store">
+    Manage hardware store branches with full CRUD operations. Each branch maintains its own product inventory, and the API exposes dedicated endpoints for per-branch stock queries and cleanup.
+  </Card>
+  <Card title="Supplier & Supply Tracking" icon="truck">
+    Maintain a registry of suppliers and the supplies they deliver. A dedicated defective-report endpoint surfaces supplies flagged as defective using MongoDB aggregation pipelines.
+  </Card>
+  <Card title="Customer & Worker Records" icon="users">
+    Store and manage customer and employee records with full create, read, update, and delete support. The React frontend provides dedicated list, create, update, and detail views for each resource type.
+  </Card>
+</CardGroup>
+
+## Tech Stack
+
+<CardGroup cols={2}>
+  <Card title="Backend" icon="server">
+    | Technology | Version |
+    |---|---|
+    | Java | 21 |
+    | Javalin | 7.2.2 |
+    | MongoDB Driver (sync) | 5.7.0 (BOM) |
+    | Jackson Databind | 2.21.2 |
+    | dotenv-java | 3.2.0 |
+    | Build Tool | Gradle (Kotlin DSL) |
+  </Card>
+  <Card title="Frontend" icon="browser">
+    | Technology | Version |
+    |---|---|
+    | React | 18 |
+    | TypeScript | ~5.8 |
+    | Vite | 6 |
+    | Tailwind CSS | 4 |
+    | PrimeReact | 10 |
+    | Axios | 1.9 |
+    | React Router DOM | 6 |
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **Full CRUD** for all 7 resource types: branches, categories, products, suppliers, supplies, customers, and workers
+- **Advanced MongoDB aggregation queries** — low-stock detection, per-branch product listings, and defective-supply reports
+- **Generic controller / service pattern** on the backend for consistent, DRY resource handling
+- **CORS enabled by default** via Javalin's bundled plugin (`anyHost()` rule set in `App.java`)
+- **React SPA with React Router** — lazy-loaded pages for list, create, update, and detail views per resource
+- **Bruno request collection** (`Ferreandina-Bruno-Requests.zip`) included in the repository root for quick API testing
+
+## Project Structure
+
+The repository is organized into two top-level application directories:
+
+```
+ferreandina-nosql/
+├── app/
+│   ├── bc/          # Backend — Java 21 + Javalin 7 REST API (Gradle)
+│   └── fr/          # Frontend — React 18 + TypeScript SPA (Vite + pnpm)
+├── config/
+│   └── collections/ # MongoDB seed JSON files (9 collections)
+├── Ferreandina-Bruno-Requests.zip
+└── tests/
+```
+
+The `app/bc` directory contains the Gradle multi-project build. The main application entry point is `app/bc/app/src/main/java/com/ferreandina/App.java`. The `app/fr` directory is a standard Vite project managed with pnpm.
+
+<Note>
+  Ferreandina NoSQL is an academic project created at UCALDAS and is released as open-source software under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. You are free to study, modify, and distribute it under the terms of that license.
+</Note>

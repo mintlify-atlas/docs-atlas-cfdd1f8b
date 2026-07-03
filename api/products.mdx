@@ -1,0 +1,283 @@
+---
+title: "Products API: Manage Hardware Store Inventory"
+sidebarTitle: "Products"
+description: "CRUD endpoints for hardware store products. Each product has pricing, weight, category, stock quantity, and a supplier reference. Base path: /api/products."
+---
+
+The **Product** resource represents an individual item sold across Ferreandina store branches. Each product document holds a human-readable name, a description, a unit price, weight, current stock quantity, and a nullable sell-out date for perishable or seasonal items. Products reference a category via `category_id` and embed a lightweight supplier object (`_id` + `name`) so supplier information is immediately available without a join. Product documents are also embedded inside Branch records to represent per-branch inventory. All CRUD operations are available at `/api/products`. A special category-filter query (`GET /api/products/category/{categoryId}`) is documented in [Advanced Queries](/api/advanced-queries).
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the product.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Slug-style product name (e.g., `"hammer"`, `"copper_wire_12awg"`).
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Full plain-text description of the product.
+</ResponseField>
+
+<ResponseField name="price" type="number" required>
+  Unit selling price in USD (double precision).
+</ResponseField>
+
+<ResponseField name="category_id" type="integer" required>
+  Integer ID referencing the product's category in the Categories collection.
+</ResponseField>
+
+<ResponseField name="quantity" type="integer" required>
+  Total units in stock across all branches.
+</ResponseField>
+
+<ResponseField name="unitary_weight" type="number" required>
+  Weight per unit in kilograms (float).
+</ResponseField>
+
+<ResponseField name="sould_out_date" type="string | null">
+  Date string indicating when this product is expected to sell out. `null` if not applicable.
+
+  <Note>
+    The field name `sould_out_date` is a typo for "sold out date" — it is preserved as-is in the source model and database for backward compatibility.
+  </Note>
+</ResponseField>
+
+<ResponseField name="supplier" type="object" required>
+  Embedded summary of the supplier that provides this product.
+  <Expandable title="Supplier object">
+    <ResponseField name="_id" type="integer">
+      Supplier identifier (references the Suppliers collection).
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Supplier display name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the product image.
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/products
+
+Returns an array of all product documents.
+
+```bash
+curl http://localhost:7070/api/products
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "name": "hammer",
+    "description": "Tools used for striking, driving nails, breaking materials and performing carpentry, construction and repair tasks",
+    "price": 100,
+    "category_id": 11,
+    "quantity": 1000,
+    "unitary_weight": 2.5,
+    "sould_out_date": null,
+    "supplier": { "_id": 1, "name": "Fierros La Central" },
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+  }
+]
+```
+
+---
+
+### GET /api/products/\{id\}
+
+Returns a single product by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/products/1
+```
+
+```json
+{
+  "_id": 1,
+  "name": "hammer",
+  "description": "Tools used for striking, driving nails, breaking materials and performing carpentry, construction and repair tasks",
+  "price": 100,
+  "category_id": 11,
+  "quantity": 1000,
+  "unitary_weight": 2.5,
+  "sould_out_date": null,
+  "supplier": { "_id": 1, "name": "Fierros La Central" },
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+}
+```
+
+---
+
+### POST /api/products
+
+Creates a new product document.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new product.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Slug-style product name.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Full product description.
+</ParamField>
+
+<ParamField body="price" type="number" required>
+  Unit price (double).
+</ParamField>
+
+<ParamField body="category_id" type="integer" required>
+  ID of the product's category.
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Units available in stock.
+</ParamField>
+
+<ParamField body="unitary_weight" type="number" required>
+  Weight per unit in kg (float).
+</ParamField>
+
+<ParamField body="sould_out_date" type="string">
+  Expected sell-out date string, or `null`.
+</ParamField>
+
+<ParamField body="supplier" type="object" required>
+  Embedded supplier summary with `_id` (integer) and `name` (string).
+</ParamField>
+
+<ParamField body="image" type="string">
+  URL of the product image.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 11,
+    "name": "measuring_tape",
+    "description": "25-foot retractable steel measuring tape with a magnetic hook and belt clip.",
+    "price": 12.99,
+    "category_id": 11,
+    "quantity": 500,
+    "unitary_weight": 0.35,
+    "sould_out_date": null,
+    "supplier": { "_id": 1, "name": "Fierros La Central" },
+    "image": "https://example.com/measuring_tape.webp"
+  }'
+```
+
+```json
+{ "insertedId": 11 }
+```
+
+---
+
+### PATCH /api/products/\{id\}
+
+Partially updates a product. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="name" type="string">
+  Updated product name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="price" type="number">
+  Updated unit price.
+</ParamField>
+
+<ParamField body="category_id" type="integer">
+  Updated category reference.
+</ParamField>
+
+<ParamField body="quantity" type="integer">
+  Updated stock quantity.
+</ParamField>
+
+<ParamField body="unitary_weight" type="number">
+  Updated unit weight.
+</ParamField>
+
+<ParamField body="sould_out_date" type="string">
+  Updated sell-out date or `null`.
+</ParamField>
+
+<ParamField body="supplier" type="object">
+  Updated embedded supplier object.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated image URL.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/products/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "price": 95.00, "quantity": 1200 }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/products/\{id\}
+
+Deletes the product with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/products/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+### GET /api/products/category/\{categoryId\}
+
+Returns all products belonging to a specific category. See [Advanced Queries](/api/advanced-queries) for full details.
+
+```bash
+curl http://localhost:7070/api/products/category/11
+```
+
+---
+
+## Example Document
+
+```json
+{
+  "_id": 1,
+  "name": "hammer",
+  "description": "Tools used for striking, driving nails, breaking materials and performing carpentry, construction and repair tasks",
+  "price": 100,
+  "category_id": 11,
+  "quantity": 1000,
+  "unitary_weight": 2.5,
+  "sould_out_date": null,
+  "supplier": { "_id": 1, "name": "Fierros La Central" },
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+}
+```

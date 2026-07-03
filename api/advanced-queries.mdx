@@ -1,0 +1,293 @@
+---
+title: "Advanced MongoDB Aggregation Queries"
+sidebarTitle: "Advanced Queries"
+description: "Five specialized endpoints run MongoDB aggregation pipelines for inventory analytics: low-stock alerts, defective supply reports, branch product queries, and cleanup operations."
+---
+
+Beyond standard CRUD, the Ferreandina API exposes six specialised operations that run MongoDB aggregation pipelines or targeted array-mutation operators directly against the database. These endpoints use stages such as `$unwind`, `$match`, `$group`, `$project`, and the update operator `$pull` to handle inventory analytics and bulk cleanup tasks that cannot be expressed as simple document lookups. All six are registered in `Routes.java` **before** their resource's `crud()` call, ensuring the specific path segments (`low-stock`, `clean-out-of-stock`, `defective-report`, etc.) take priority over the generic `{id}` parameter.
+
+---
+
+## GET /api/branches/low-stock
+
+Returns every branch/product pair where the embedded product's `quantity` is less than **10**. The result is projected into a flat document — no branch nesting — making it easy to render directly as a table.
+
+**MongoDB pipeline:**
+
+```javascript
+db.branches.aggregate([
+  { $unwind: "$products" },
+  { $match: { "products.quantity": { $lt: 10 } } },
+  {
+    $project: {
+      _id: 0,
+      sucursal: "$name",
+      producto: "$products.name",
+      stock: "$products.quantity"
+    }
+  }
+])
+```
+
+**Curl example:**
+
+```bash
+curl http://localhost:7070/api/branches/low-stock
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Productos con bajo stock obtenidos",
+  "data": [
+    [
+      { "sucursal": "Sucursal Norte", "producto": "Tornillo 1/2", "stock": 3 },
+      { "sucursal": "Sucursal Sur",  "producto": "Llave inglesa",  "stock": 7 }
+    ]
+  ],
+  "size": 1
+}
+```
+
+| Field       | Type     | Description                          |
+|-------------|----------|--------------------------------------|
+| `sucursal`  | `string` | Name of the branch (`$name`)         |
+| `producto`  | `string` | Name of the embedded product         |
+| `stock`     | `number` | Current quantity of that product     |
+
+---
+
+## GET /api/branches/\{id\}/products
+
+Returns the embedded `products` array for a single branch identified by its integer `_id`. Only the `products` field is projected; the branch-level `_id` is suppressed.
+
+**MongoDB operation:**
+
+```javascript
+db.branches.find({ "_id": 1 }, { "products": 1, "_id": 0 })
+```
+
+**Curl example:**
+
+```bash
+curl http://localhost:7070/api/branches/1/products
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Lista de productos de la sucursal",
+  "data": [
+    {
+      "products": [
+        { "_id": 3, "name": "Martillo",      "quantity": 15, "image": "martillo.png" },
+        { "_id": 7, "name": "Sierra caladora", "quantity": 2,  "image": "sierra.png"  }
+      ]
+    }
+  ],
+  "size": 1
+}
+```
+
+| Field      | Type     | Description                                   |
+|------------|----------|-----------------------------------------------|
+| `_id`      | `number` | Integer identifier of the embedded product    |
+| `name`     | `string` | Product name                                  |
+| `quantity` | `number` | Stock quantity at this branch                 |
+| `image`    | `string` | Image filename or URL for the product         |
+
+---
+
+## PATCH /api/branches/\{id\}/remove-product/\{productId\}
+
+Removes a single product from a branch's embedded `products` array using MongoDB's `$pull` operator. Targets one branch by `{id}` and pulls the array element whose `_id` matches `{productId}`. Both path parameters must be integers.
+
+**MongoDB operation:**
+
+```javascript
+db.branches.updateOne(
+  { "_id": 1 },
+  { $pull: { "products": { "_id": 0 } } }
+)
+```
+
+**Curl example:**
+
+```bash
+curl -X PATCH http://localhost:7070/api/branches/1/remove-product/3
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Producto eliminado de la sucursal correctamente",
+  "data": [{ "update_count": 1 }],
+  "size": 1
+}
+```
+
+| Field          | Type     | Description                                        |
+|----------------|----------|----------------------------------------------------|
+| `update_count` | `number` | Number of branch documents modified (0 or 1)       |
+
+<Note>
+  A response with `update_count: 0` means either the branch `_id` or the
+  product `_id` was not found. No error is thrown in that case — check both IDs
+  before retrying.
+</Note>
+
+---
+
+## PATCH /api/branches/clean-out-of-stock
+
+Scans **every** branch document and removes all embedded products whose `quantity` is less than or equal to **0**. This is a bulk `updateMany` operation — it affects the entire `branches` collection in a single command.
+
+**MongoDB operation:**
+
+```javascript
+db.branches.updateMany(
+  {},
+  { $pull: { "products": { "quantity": { $lte: 0 } } } }
+)
+```
+
+**Curl example:**
+
+```bash
+curl -X PATCH http://localhost:7070/api/branches/clean-out-of-stock
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Cleaning OutStock completed",
+  "data": [{ "delete_count": 4 }],
+  "size": 1
+}
+```
+
+| Field          | Type     | Description                                            |
+|----------------|----------|--------------------------------------------------------|
+| `delete_count` | `number` | Number of branch documents that had products removed   |
+
+<Warning>
+  This is a **global, irreversible operation**. It modifies every branch
+  document in the collection simultaneously. There is no confirmation prompt
+  and no undo — run it only when you are certain all zero/negative-quantity
+  entries should be purged. The React frontend labels this "Clean Out Of Stock
+  (Global)" to make the scope visible before execution.
+</Warning>
+
+---
+
+## GET /api/products/category/\{categoryId\}
+
+Returns all product documents from the global `products` collection that have a `category_id` matching the given integer. This is a simple equality filter — no aggregation pipeline is used.
+
+**MongoDB operation:**
+
+```javascript
+db.products.find({ "category_id": 11 })
+```
+
+**Curl example:**
+
+```bash
+curl http://localhost:7070/api/products/category/11
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Productos filtrados por categoría",
+  "data": [
+    [
+      { "_id": 21, "name": "Taladro inalámbrico", "price": 89.99, "category_id": 11 },
+      { "_id": 22, "name": "Destornillador eléctrico", "price": 34.50, "category_id": 11 }
+    ]
+  ],
+  "size": 1
+}
+```
+
+<Tip>
+  Use `GET /api/categories` to retrieve the full list of categories and their
+  integer `_id` values before querying by `categoryId`.
+</Tip>
+
+---
+
+## GET /api/supplies/defective-report
+
+Groups all supply records by **supplier name** and sums the total defective quantity reported across every shipment for that supplier. The result is produced by a single `$group` aggregation stage.
+
+**MongoDB pipeline:**
+
+```javascript
+db.supplies.aggregate([
+  {
+    $group: {
+      _id: "$supplier.name",
+      totalDefectuoso: { $sum: "$defective_quanity" }
+    }
+  }
+])
+```
+
+**Curl example:**
+
+```bash
+curl http://localhost:7070/api/supplies/defective-report
+```
+
+**Response:**
+
+```json
+{
+  "status": 200,
+  "message": "Defective report generated successfully",
+  "data": [
+    [
+      { "_id": "Proveedor Hernández", "totalDefectuoso": 14 },
+      { "_id": "Ferretería Global S.A.", "totalDefectuoso": 3 }
+    ]
+  ],
+  "size": 1
+}
+```
+
+| Field             | Type     | Description                                         |
+|-------------------|----------|-----------------------------------------------------|
+| `_id`             | `string` | Supplier name (sourced from `supplier.name`)        |
+| `totalDefectuoso` | `number` | Sum of all defective units reported for that supplier |
+
+<Note>
+  The source field in the MongoDB documents is spelled **`defective_quanity`**
+  (missing the second `t` — `quantity` → `quanity`). This typo is present in
+  the `SupplieModel` schema and in the aggregation pipeline. Use this exact
+  spelling if you write custom queries or add new supply documents directly
+  through MongoDB Shell, otherwise the `$sum` will return 0.
+</Note>
+
+---
+
+## Frontend Integration
+
+All six operations above are available in the React frontend without writing any code. Navigate to the **Advanced Reports & Queries** page at the `/advanced-queries` route in the Vite/React app. The page provides:
+
+- One-click buttons for the three parameterless operations (low-stock, defective report, clean out-of-stock).
+- Input fields for the three parameterised operations (branch products by ID, products by category ID, remove product from branch).
+- A dynamic results table rendered by [Tabulator](https://tabulator.info/) that auto-generates columns from whatever keys appear in the response `data` array.
+- SweetAlert2 confirmation dialogs for mutation operations.
+
+All API calls on that page are routed through the shared `axios` instance configured in `src/services/axios.config.ts`, which sets the base URL to `http://localhost:7070/api`.

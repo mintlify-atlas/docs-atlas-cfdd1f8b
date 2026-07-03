@@ -1,0 +1,220 @@
+---
+title: "Customers API: Manage Store Customer Records"
+sidebarTitle: "Customers"
+description: "CRUD endpoints for customer records. Customers have contact info including NI, alias, category, and phone. Base path: /api/customers."
+---
+
+The **Customer** resource stores information about individuals and companies that purchase products from Ferreandina. Rather than a traditional `name`/`email` schema, customer documents follow a Colombian-market pattern: each customer is identified by a **NI** (Número de Identificación, stored under the BSON key `"NI"`), a unique lowercase `alias`, a `category` indicating the customer type (e.g., `"company"`), and a `phone` number. The seed dataset ships with hundreds of customer records. All CRUD operations are available at `/api/customers`.
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the customer.
+</ResponseField>
+
+<ResponseField name="NI" type="string" required>
+  National Identification number (Número de Identificación). Stored in MongoDB under the key `"NI"` (uppercase). Mapped via `@BsonProperty("NI")` in the Java model.
+</ResponseField>
+
+<ResponseField name="alias" type="string" required>
+  Unique lowercase slug alias for the customer (e.g., `"oviedoplc"`, `"rodríguez-cardona"`).
+</ResponseField>
+
+<ResponseField name="category" type="string" required>
+  Customer type or segment. Typical value in the seed data is `"company"`.
+</ResponseField>
+
+<ResponseField name="phone" type="string" required>
+  Contact phone number (format varies — includes local Colombian landline and mobile formats).
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/customers
+
+Returns an array of all customer documents.
+
+```bash
+curl http://localhost:7070/api/customers
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "NI": "9319166930",
+    "alias": "oviedoplc",
+    "category": "company",
+    "phone": "313 194 71 05"
+  },
+  {
+    "_id": 2,
+    "NI": "0255361413",
+    "alias": "rodríguez-cardona",
+    "category": "company",
+    "phone": "+57 316 300 74 26"
+  }
+]
+```
+
+---
+
+### GET /api/customers/\{id\}
+
+Returns a single customer by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/customers/1
+```
+
+```json
+{
+  "_id": 1,
+  "NI": "9319166930",
+  "alias": "oviedoplc",
+  "category": "company",
+  "phone": "313 194 71 05"
+}
+```
+
+---
+
+### POST /api/customers
+
+Creates a new customer document.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new customer.
+</ParamField>
+
+<ParamField body="NI" type="string" required>
+  National Identification number (must be unique).
+</ParamField>
+
+<ParamField body="alias" type="string" required>
+  Unique lowercase alias for the customer.
+</ParamField>
+
+<ParamField body="category" type="string" required>
+  Customer category (e.g., `"company"`, `"individual"`).
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/customers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 800,
+    "NI": "1234567890",
+    "alias": "constructora-norte",
+    "category": "company",
+    "phone": "+57 601 234 56 78"
+  }'
+```
+
+```json
+{ "insertedId": 800 }
+```
+
+---
+
+### PATCH /api/customers/\{id\}
+
+Partially updates a customer. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="NI" type="string">
+  Updated national identification number.
+</ParamField>
+
+<ParamField body="alias" type="string">
+  Updated alias.
+</ParamField>
+
+<ParamField body="category" type="string">
+  Updated category.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Updated phone number.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/customers/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "phone": "+57 313 999 00 11" }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/customers/\{id\}
+
+Deletes the customer with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/customers/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+## HTTP File Example
+
+The following snippet shows how to test the customer endpoints using a `.http` file (compatible with VS Code REST Client or IntelliJ HTTP Client):
+
+```http
+@url = http://localhost:7070/api/customers
+
+### Get All
+GET {{url}}
+
+### Get One By ID
+GET {{url}}/1
+```
+
+---
+
+## Example Documents
+
+```json
+[
+  {
+    "_id": 1,
+    "NI": "9319166930",
+    "alias": "oviedoplc",
+    "category": "company",
+    "phone": "313 194 71 05"
+  },
+  {
+    "_id": 2,
+    "NI": "0255361413",
+    "alias": "rodríguez-cardona",
+    "category": "company",
+    "phone": "+57 316 300 74 26"
+  },
+  {
+    "_id": 3,
+    "NI": "7866674434",
+    "alias": "rueda,barbosaandcano",
+    "category": "company",
+    "phone": "(+57)6097299619"
+  }
+]
+```

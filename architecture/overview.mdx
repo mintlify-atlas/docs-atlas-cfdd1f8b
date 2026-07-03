@@ -1,0 +1,142 @@
+---
+title: "System Architecture: Two-Tier NoSQL Application"
+sidebarTitle: "Overview"
+description: "Ferreandina NoSQL follows a two-tier architecture: a Java/Javalin REST API communicates with MongoDB, while a React SPA consumes the API over HTTP."
+---
+
+Ferreandina NoSQL is structured as a classic two-tier web application. A React single-page application (SPA) running in the browser communicates exclusively through HTTP with a Javalin REST API server listening on port **7070**. The API layer handles all business logic and persistence by reading from and writing to a **MongoDB** database. There is no direct connection between the frontend and the database — all data access flows through the REST endpoints, keeping the data layer completely encapsulated.
+
+## Layers
+
+<CardGroup cols={3}>
+  <Card title="React Frontend" icon="browser">
+    Built with **Vite**, **React 18**, **TypeScript**, and **Tailwind CSS**. A
+    generic `Service<T>` class wraps every API call using an Axios instance
+    pre-configured with a base URL read from the `VITE_API_URL` environment
+    variable. The SPA is fully decoupled from the backend — it only speaks JSON
+    over HTTP.
+  </Card>
+  <Card title="REST API" icon="server">
+    Written in **Java 21** with the **Javalin 7** micro-framework. Routes are
+    registered declaratively in `Routes.java` using Javalin's `apiBuilder` DSL.
+    **CORS is enabled globally** via `config.bundledPlugins.enableCors` so the
+    SPA can call the API from any origin during development or in production.
+    The server binds on port **7070**.
+  </Card>
+  <Card title="Data Layer" icon="database">
+    **MongoDB** is accessed through the official Java driver. The
+    `Connection<T>` class builds a **POJO codec registry** using
+    `PojoCodecProvider.builder().automatic(true).build()`, which lets the driver
+    automatically serialize and deserialize Java model classes to and from BSON
+    documents without any manual mapping code.
+  </Card>
+</CardGroup>
+
+## Request Lifecycle
+
+Every client interaction travels through the same four-layer pipeline from browser to database and back.
+
+<Steps>
+  <Step title="Browser sends an HTTP request">
+    The React frontend calls one of the `Service<T>` methods (`get_all`,
+    `get_by_id`, `post`, `update`, or `delete`). Axios dispatches the request
+    to the Javalin server running at `http://localhost:7070` (or the value of
+    `VITE_API_URL`).
+  </Step>
+  <Step title="Route dispatches to a controller">
+    Javalin matches the incoming path and HTTP method against the routes
+    registered in `Routes.java`. CRUD resources are registered with
+    `crud("/api/{resource}/{id}", controller)`, which maps the five standard
+    operations to the matching `CrudHandler` methods on the relevant controller.
+  </Step>
+  <Step title="Controller delegates to Service<T>">
+    The matched controller method (inherited from `Controller<T extends Model>`)
+    calls `this.service.add()`, `this.service.getAll()`,
+    `this.service.getOne()`, `this.service.updateOne()`, or
+    `this.service.delete()` to execute the MongoDB operation. The
+    `Validator<T>` helper deserializes and validates the request body before
+    any write operation.
+  </Step>
+  <Step title="Connection<T> opens a typed MongoCollection">
+    `Connection<T>` reads `MONGODB_URI` and `MONGODB_DB_NAME` from a `.env`
+    file via `dotenv-java`. It then calls
+    `db.getCollection(collectionName, modelClass)` with the custom POJO codec
+    registry, returning a `MongoCollection<T>` that automatically maps BSON
+    documents to the correct Java model class.
+  </Step>
+  <Step title="Result is serialized and returned">
+    `ResultUtil<T>` wraps the query result (or error) in a standardised JSON
+    envelope and calls `ctx.json(...)` to send the HTTP response back to the
+    browser.
+  </Step>
+</Steps>
+
+## Generic Controller Pattern
+
+All seven resource controllers extend the same `Controller<T extends Model>` abstract class, which implements Javalin's `CrudHandler` interface. This single class provides fully functional `create`, `getAll`, `getOne`, `update`, and `delete` handlers for any model type — concrete controllers only need to pass their class token and collection name to the super constructor.
+
+```java
+// Controller.java — constructor signature
+public abstract class Controller<T extends Model> implements CrudHandler {
+    protected Validator<T> validator;
+    protected ResultUtil<T> resultMan;
+    protected Service<T> service;
+    protected Class<T> clazz;
+
+    public Controller(Class<T> clazz, String collectionName) {
+        this.clazz = clazz;
+        this.validator = new Validator<T>();
+        this.resultMan = new ResultUtil<>();
+        this.service = new Service<T>(this.clazz);
+        this.service.setCollection(collectionName);
+    }
+    // ...
+}
+```
+
+A concrete controller such as `BranchController` simply calls `super(BranchModel.class, "branches")` — all five CRUD operations are inherited immediately, and the POJO codec registry handles type-safe serialization automatically.
+
+## CORS Configuration
+
+CORS is enabled globally in `App.java` using Javalin's bundled CORS plugin. The rule `it.anyHost()` allows requests from **any origin**, which is suitable for local development and can be tightened to specific origins for production deployments.
+
+```java
+// App.java
+Javalin.create(
+    config -> {
+        new Routes(config);
+
+        config.bundledPlugins.enableCors(cors -> {
+            cors.addRule(it -> {
+                it.anyHost();
+            });
+        });
+    }).start(7070);
+```
+
+## API Base Path
+
+All endpoints are registered under the `/api` prefix inside `Routes.java`. The router exposes **seven CRUD resources** and **three special-purpose endpoints**.
+
+**CRUD resources** (each provides `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`):
+
+| Resource | Path prefix |
+|---|---|
+| Branches | `/api/branches` |
+| Categories | `/api/categories` |
+| Products | `/api/products` |
+| Supplies | `/api/supplies` |
+| Suppliers | `/api/suppliers` |
+| Customers | `/api/customers` |
+| Workers | `/api/workers` |
+
+**Special endpoints**:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/branches/low-stock` | Returns all branches that have low-stock products |
+| `PATCH` | `/api/branches/clean-out-of-stock` | Removes out-of-stock products from all branches |
+| `GET` | `/api/branches/{id}/products` | Returns the embedded product list for a single branch |
+| `PATCH` | `/api/branches/{id}/remove-product/{productId}` | Removes a specific product from a branch's embedded array |
+| `GET` | `/api/products/category/{categoryId}` | Filters products by their `category_id` field |
+| `GET` | `/api/supplies/defective-report` | Returns a report of supplies with defective quantities |

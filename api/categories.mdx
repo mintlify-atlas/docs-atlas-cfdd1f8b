@@ -1,0 +1,182 @@
+---
+title: "Categories API: Organize Products by Type"
+sidebarTitle: "Categories"
+description: "CRUD endpoints for product categories. Categories group hardware products and can be filtered by ID. Base path: /api/categories."
+---
+
+The **Category** resource organizes Ferreandina's product catalog into logical groupings such as hand tools, electrical, fasteners, and paints. Every product document holds a `category_id` that references one of these categories. Category documents are intentionally lean — just an ID, a name slug, a description, and a cover image URL. The full catalog ships with 19 predefined categories, but they can be created, updated, and removed through the standard CRUD endpoints at `/api/categories`.
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the category.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Slug-style category name (e.g., `"hand-tools"`, `"electrical"`).
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Human-readable description of what the category contains.
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the category cover image.
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/categories
+
+Returns an array of all category documents.
+
+```bash
+curl http://localhost:7070/api/categories
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "name": "construction-materials",
+    "description": "Basic materials for construction and renovation projects such as cement, sand, bricks, blocks, mixes, plaster, mortars and complementary supplies",
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/adhesives-and-sealants.webp"
+  },
+  {
+    "_id": 11,
+    "name": "hand-tools",
+    "description": "Tools for mechanical, assembly and repair tasks without electricity, such as hammers, screwdrivers, wrenches, pliers and other manual tools",
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/hand-tools.webp"
+  }
+]
+```
+
+---
+
+### GET /api/categories/\{id\}
+
+Returns a single category by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/categories/11
+```
+
+```json
+{
+  "_id": 11,
+  "name": "hand-tools",
+  "description": "Tools for mechanical, assembly and repair tasks without electricity, such as hammers, screwdrivers, wrenches, pliers and other manual tools",
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/hand-tools.webp"
+}
+```
+
+---
+
+### POST /api/categories
+
+Creates a new category document.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new category.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Slug-style category name.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Human-readable description of the category.
+</ParamField>
+
+<ParamField body="image" type="string">
+  URL of the category cover image.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/categories \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 20,
+    "name": "welding-equipment",
+    "description": "Welding machines, electrodes, protective gear and accessories for metal joining and repair.",
+    "image": "https://example.com/welding.webp"
+  }'
+```
+
+```json
+{ "insertedId": 20 }
+```
+
+---
+
+### PATCH /api/categories/\{id\}
+
+Partially updates a category. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="name" type="string">
+  Updated category name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated cover image URL.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/categories/20 \
+  -H "Content-Type: application/json" \
+  -d '{ "description": "Industrial and hobbyist welding machines, rods, helmets and related consumables." }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/categories/\{id\}
+
+Deletes the category with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/categories/20
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+## Example Document
+
+```json
+{
+  "_id": 5,
+  "name": "electrical",
+  "description": "Electrical installation products such as cables, plugs, switches, outlets, breakers, conduits, light bulbs and electrical accessories",
+  "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/electrical.webp"
+}
+```
+
+The seed data ships with 19 categories in total, ranging from `construction-materials` (`_id: 1`) to `pipes-and-curtain-accessories` (`_id: 19`). Some examples:
+
+| `_id` | `name`                    |
+|-------|---------------------------|
+| 1     | construction-materials    |
+| 5     | electrical                |
+| 10    | power-tools               |
+| 11    | hand-tools                |
+| 15    | adhesives-and-sealants    |
+| 18    | fasteners                 |

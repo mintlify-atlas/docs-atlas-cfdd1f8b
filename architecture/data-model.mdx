@@ -1,0 +1,373 @@
+---
+title: "MongoDB Collections and Document Schemas"
+sidebarTitle: "Data Model"
+description: "Ferreandina NoSQL uses 9 MongoDB collections. Explore the document schemas, field types, and embedded relationships for each collection."
+---
+
+Ferreandina NoSQL stores all data in **MongoDB** using a document model. Unlike relational databases, there are no auto-generated ObjectId keys — every document uses an **integer `_id`** as its primary key, managed by the application. Two collections use embedded arrays to denormalize related data for fast reads: a `branches` document embeds a subset of its assigned `products` and `workers` directly inside the branch document, while the canonical records for those entities live in their own top-level collections.
+
+<Note>
+  Embedded product and worker objects inside a `branches` document are
+  **denormalized copies** kept for quick branch-level listing queries. They
+  carry only the fields needed for display (typically `_id`, `name`, `quantity`,
+  and `image`). The authoritative records — with full field sets — always live
+  in the `products` and `workers` collections respectively.
+</Note>
+
+## Collection Schemas
+
+<Accordion title="branches">
+  The `branches` collection represents physical store locations. Each branch
+  document embeds a trimmed-down list of its assigned products and workers so
+  the UI can render a branch card in a single query.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the branch.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Human-readable branch name, e.g. `"ferreandina-manizales"`.
+  </ResponseField>
+  <ResponseField name="city" type="string" required>
+    City where the branch is located.
+  </ResponseField>
+  <ResponseField name="direction" type="string" required>
+    Street address of the branch.
+  </ResponseField>
+  <ResponseField name="is_main" type="boolean" required>
+    Whether this is the main/flagship branch.
+  </ResponseField>
+  <ResponseField name="image" type="string" required>
+    URL of the branch cover image.
+  </ResponseField>
+  <ResponseField name="products" type="array">
+    Embedded array of product snapshots assigned to this branch.
+    <Expandable title="product snapshot fields">
+      <ResponseField name="_id" type="integer">Integer product ID.</ResponseField>
+      <ResponseField name="name" type="string">Product name.</ResponseField>
+      <ResponseField name="quantity" type="integer">Current stock quantity at this branch.</ResponseField>
+      <ResponseField name="image" type="string">Product image URL.</ResponseField>
+    </Expandable>
+  </ResponseField>
+  <ResponseField name="workers" type="array">
+    Embedded array of worker snapshots assigned to this branch.
+    <Expandable title="worker snapshot fields">
+      <ResponseField name="_id" type="integer">Integer worker ID.</ResponseField>
+      <ResponseField name="name" type="string">Worker full name.</ResponseField>
+      <ResponseField name="image" type="string">Worker photo URL.</ResponseField>
+    </Expandable>
+  </ResponseField>
+
+  **Example document** (from `config/collections/branches.json`):
+
+  ```json
+  {
+    "_id": 1,
+    "name": "ferreandina-manizales",
+    "city": "manizales",
+    "direction": "Cra 3 #23-12",
+    "is_main": false,
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/branches/ferreandina-manizales.webp",
+    "products": [
+      {
+        "_id": 1,
+        "name": "hammer",
+        "quantity": 10,
+        "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+      },
+      {
+        "_id": 3,
+        "name": "power_drill",
+        "quantity": 4500,
+        "image": "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQabipjJj6zlLRVhlf8dq6SNxXqeyfGTFRu20wY_kaSZfhmzl1CzisyBZNKrUUW"
+      }
+    ],
+    "workers": [
+      {
+        "_id": 1,
+        "name": "Eduardo Sánchez",
+        "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/1.jpg"
+      },
+      {
+        "_id": 2,
+        "name": "Santiago Marin",
+        "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/2.jpg"
+      }
+    ]
+  }
+  ```
+</Accordion>
+
+<Accordion title="products">
+  The `products` collection is the catalogue of all hardware items sold across
+  branches. Each product carries a denormalized `supplier` sub-document (with
+  `_id` and `name`) so supplier info is available without a join.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the product.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Machine-friendly product name, e.g. `"hammer"` or `"copper_wire_12awg"`.
+  </ResponseField>
+  <ResponseField name="description" type="string" required>
+    Human-readable product description.
+  </ResponseField>
+  <ResponseField name="price" type="double" required>
+    Unit price in the store's currency.
+  </ResponseField>
+  <ResponseField name="category_id" type="integer" required>
+    Foreign key (integer) referencing a document in the `categories` collection.
+  </ResponseField>
+  <ResponseField name="quantity" type="integer" required>
+    Global stock quantity (canonical value; branches may store a local copy).
+  </ResponseField>
+  <ResponseField name="unitary_weight" type="float" required>
+    Weight of a single unit in kilograms.
+  </ResponseField>
+  <ResponseField name="sould_out_date" type="string | null">
+    ISO date string when the product sold out, or `null` if currently in stock.
+    Note: the field name contains a known typo from the source model
+    (`sould_out_date` rather than `sold_out_date`).
+  </ResponseField>
+  <ResponseField name="supplier" type="object" required>
+    Denormalized supplier snapshot.
+    <Expandable title="supplier snapshot fields">
+      <ResponseField name="_id" type="integer">Supplier integer ID.</ResponseField>
+      <ResponseField name="name" type="string">Supplier display name.</ResponseField>
+    </Expandable>
+  </ResponseField>
+  <ResponseField name="image" type="string" required>
+    Product image URL.
+  </ResponseField>
+
+  **Example document** (from `config/collections/products.json`):
+
+  ```json
+  {
+    "_id": 1,
+    "name": "hammer",
+    "description": "Tools used for striking, driving nails, breaking materials and performing carpentry, construction and repair tasks",
+    "price": 100,
+    "category_id": 11,
+    "quantity": 1000,
+    "unitary_weight": 2.5,
+    "sould_out_date": null,
+    "supplier": { "_id": 1, "name": "Fierros La Central" },
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+  }
+  ```
+</Accordion>
+
+<Accordion title="categories">
+  The `categories` collection organises products into named groups. Products
+  reference a category by its integer `_id` via the `category_id` field.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the category.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Category name, e.g. `"Hand Tools"` or `"Electrical"`.
+  </ResponseField>
+  <ResponseField name="description" type="string" required>
+    Short description of what types of products belong to this category.
+  </ResponseField>
+  <ResponseField name="image" type="string">
+    Optional category image URL.
+  </ResponseField>
+
+  **Example document**:
+
+  ```json
+  {
+    "_id": 11,
+    "name": "Hand Tools",
+    "description": "Manual tools used for construction, repair, and carpentry tasks.",
+    "image": "https://example.com/categories/hand-tools.webp"
+  }
+  ```
+</Accordion>
+
+<Accordion title="suppliers">
+  The `suppliers` collection holds the companies and individuals that supply
+  hardware products to Ferreandina. Supplier identity is denormalized into
+  product documents (and supply records) for display convenience.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the supplier.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Supplier company or individual name.
+  </ResponseField>
+  <ResponseField name="email" type="string" required>
+    Contact email address for the supplier.
+  </ResponseField>
+  <ResponseField name="phone" type="string" required>
+    Contact phone number for the supplier.
+  </ResponseField>
+  <ResponseField name="image" type="string" required>
+    Supplier logo or avatar image URL.
+  </ResponseField>
+
+  **Example document** (from `config/collections/suppliers.json`):
+
+  ```json
+  {
+    "_id": 1,
+    "name": "Wright Ltd",
+    "email": "michael86@petersen-freeman.com",
+    "phone": "(633)358-1461",
+    "image": "https://ui-avatars.com/api/?name=WrightLtd&background=random&color=cdf5f7&size=512"
+  }
+  ```
+</Accordion>
+
+<Accordion title="supplies">
+  The `supplies` collection records incoming stock deliveries. Each supply
+  document references the supplying company via a denormalized `suplier`
+  sub-document and lists the products delivered in an embedded `products` array.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the supply record.
+  </ResponseField>
+  <ResponseField name="suplier" type="object" required>
+    Denormalized snapshot of the delivering supplier. Note: the field is spelled
+    `suplier` (one `p`) as defined in `SupplieModel.java`.
+    <Expandable title="suplier snapshot fields">
+      <ResponseField name="_id" type="integer">Supplier integer ID.</ResponseField>
+      <ResponseField name="name" type="string">Supplier display name.</ResponseField>
+    </Expandable>
+  </ResponseField>
+  <ResponseField name="products" type="array" required>
+    List of product documents included in this delivery. Each item mirrors the
+    full `ProductModel` schema (see the **products** accordion above).
+  </ResponseField>
+  <ResponseField name="defective_quanity" type="integer" required>
+    Number of defective units found in this delivery. Note: the field name
+    contains a known typo from the source model (`defective_quanity` rather
+    than `defective_quantity`).
+  </ResponseField>
+  <ResponseField name="entry_date" type="string" required>
+    ISO date string recording when the delivery was received.
+  </ResponseField>
+
+  **Example document**:
+
+  ```json
+  {
+    "_id": 1,
+    "suplier": { "_id": 3, "name": "Fox, Hernandez and Hubbard" },
+    "products": [
+      {
+        "_id": 1,
+        "name": "hammer",
+        "quantity": 200,
+        "price": 100,
+        "unitary_weight": 2.5,
+        "sould_out_date": null,
+        "category_id": 11,
+        "supplier": { "_id": 3, "name": "Fox, Hernandez and Hubbard" },
+        "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/products/hammer.webp"
+      }
+    ],
+    "defective_quanity": 3,
+    "entry_date": "2024-03-15"
+  }
+  ```
+</Accordion>
+
+<Accordion title="customers">
+  The `customers` collection stores the buyers who purchase from Ferreandina
+  branches. The model uses a `@BsonProperty("NI")` annotation to map the Java
+  field `ni` to the MongoDB field name `NI` (national identification number).
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the customer.
+  </ResponseField>
+  <ResponseField name="NI" type="string" required>
+    National identification number for the customer. Stored under the uppercase
+    key `NI` in MongoDB (via `@BsonProperty("NI")` in `CustomerModel.java`).
+  </ResponseField>
+  <ResponseField name="alias" type="string" required>
+    Display name or alias used for the customer.
+  </ResponseField>
+  <ResponseField name="category" type="string" required>
+    Customer category or classification (e.g. wholesale, retail).
+  </ResponseField>
+  <ResponseField name="phone" type="string" required>
+    Customer contact phone number.
+  </ResponseField>
+
+  **Example document**:
+
+  ```json
+  {
+    "_id": 1,
+    "NI": "1234567890",
+    "alias": "El Constructor",
+    "category": "wholesale",
+    "phone": "310-555-0198"
+  }
+  ```
+</Accordion>
+
+<Accordion title="workers">
+  The `workers` collection stores the employees who work across Ferreandina
+  branches. A trimmed version of each worker document (only `_id`, `name`, and
+  `image`) is embedded inside the corresponding branch document.
+
+  <ResponseField name="_id" type="integer" required>
+    Unique integer identifier for the worker.
+  </ResponseField>
+  <ResponseField name="name" type="string" required>
+    Worker's full name.
+  </ResponseField>
+  <ResponseField name="image" type="string" required>
+    Worker photo URL.
+  </ResponseField>
+  <ResponseField name="age" type="integer" required>
+    Worker's age in years.
+  </ResponseField>
+  <ResponseField name="speciality" type="string" required>
+    Job speciality or role description (e.g. `"electrician"`, `"plumber"`).
+  </ResponseField>
+  <ResponseField name="weight" type="float" required>
+    Worker's body weight in kilograms (used for safety/equipment assignments).
+  </ResponseField>
+  <ResponseField name="email" type="string" required>
+    Worker's contact email address.
+  </ResponseField>
+  <ResponseField name="phone" type="string" required>
+    Worker's contact phone number.
+  </ResponseField>
+  <ResponseField name="salary" type="float" required>
+    Worker's monthly salary.
+  </ResponseField>
+
+  **Example document**:
+
+  ```json
+  {
+    "_id": 1,
+    "name": "Eduardo Sánchez",
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/workers/1.jpg",
+    "age": 34,
+    "speciality": "carpentry",
+    "weight": 78.5,
+    "email": "eduardo.sanchez@ferreandina.com",
+    "phone": "300-123-4567",
+    "salary": 1800000
+  }
+  ```
+</Accordion>
+
+## Relationships
+
+Ferreandina NoSQL uses a **hybrid** approach that mixes MongoDB-style denormalization with relational-style integer foreign keys.
+
+**Reference by integer ID (`category_id` → `categories._id`)**
+: Products carry a `category_id` field that is an integer matching `_id` in the `categories` collection. This is a classic foreign-key reference; the application must issue a second query (or use `$lookup` in an aggregation pipeline) to resolve the full category document.
+
+**Denormalized supplier reference (`supplier._id` inside products)**
+: Rather than referencing suppliers by ID alone, each product embeds a `supplier` sub-document with `{ "_id": ..., "name": ... }`. This avoids a second round-trip when displaying product listings, but means supplier name changes must be propagated to all embedded copies.
+
+**Embedded arrays in branches (`products` / `workers`)**
+: Branch documents embed trimmed snapshots of their assigned products and workers. The embedded copies contain only the fields needed for display; full records remain in the `products` and `workers` collections. This pattern optimises branch-listing queries at the cost of write amplification whenever a product's name, quantity, or image changes.

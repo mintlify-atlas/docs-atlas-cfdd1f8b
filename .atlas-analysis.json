@@ -1,0 +1,130 @@
+{
+  "projectType": "saas",
+  "projectName": "Ferreandina NoSQL",
+  "projectDescription": "A full-stack hardware store management system (Ferreandina) with a React frontend and a Java/Javalin REST API backend backed by MongoDB, supporting CRUD operations on branches, products, categories, suppliers, customers, and workers.",
+  "theme": "luma",
+  "primaryColor": "#E86A2B",
+  "lightColor": "#F5A96A",
+  "darkColor": "#B04E18",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/data-model"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "backend/setup",
+              "backend/configuration",
+              "backend/controllers"
+            ]
+          },
+          {
+            "group": "Frontend",
+            "pages": [
+              "frontend/setup",
+              "frontend/pages",
+              "frontend/services"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview"
+            ]
+          },
+          {
+            "group": "Core Resources",
+            "pages": [
+              "api/branches",
+              "api/products",
+              "api/categories",
+              "api/suppliers",
+              "api/supplies",
+              "api/customers",
+              "api/workers"
+            ]
+          },
+          {
+            "group": "Advanced Queries",
+            "pages": [
+              "api/advanced-queries"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "MongoDB-backed REST API built with Java 21 and Javalin 7",
+    "Full CRUD for branches, products, categories, suppliers, supplies, customers, and workers",
+    "Advanced aggregation queries: low-stock detection, defective supplies report, branch product filtering",
+    "React + TypeScript frontend with Tailwind CSS, PrimeReact, and React Router",
+    "Generic controller/service pattern eliminating boilerplate for every resource",
+    "Environment-based MongoDB connection via dotenv-java",
+    "CORS enabled by default for development and cross-origin frontends",
+    "Bruno API request collection included for rapid endpoint testing"
+  ],
+  "publicApiSurface": [
+    "GET /api/branches",
+    "GET /api/branches/{id}",
+    "POST /api/branches",
+    "PATCH /api/branches/{id}",
+    "DELETE /api/branches/{id}",
+    "GET /api/branches/low-stock",
+    "GET /api/branches/{id}/products",
+    "PATCH /api/branches/{id}/remove-product/{productId}",
+    "PATCH /api/branches/clean-out-of-stock",
+    "GET /api/products",
+    "GET /api/products/{id}",
+    "POST /api/products",
+    "PATCH /api/products/{id}",
+    "DELETE /api/products/{id}",
+    "GET /api/products/category/{categoryId}",
+    "GET /api/categories",
+    "GET /api/categories/{id}",
+    "POST /api/categories",
+    "PATCH /api/categories/{id}",
+    "DELETE /api/categories/{id}",
+    "GET /api/suppliers",
+    "GET /api/suppliers/{id}",
+    "POST /api/suppliers",
+    "PATCH /api/suppliers/{id}",
+    "DELETE /api/suppliers/{id}",
+    "GET /api/supplies",
+    "GET /api/supplies/{id}",
+    "POST /api/supplies",
+    "PATCH /api/supplies/{id}",
+    "DELETE /api/supplies/{id}",
+    "GET /api/supplies/defective-report",
+    "GET /api/customers",
+    "GET /api/customers/{id}",
+    "POST /api/customers",
+    "PATCH /api/customers/{id}",
+    "DELETE /api/customers/{id}",
+    "GET /api/workers",
+    "GET /api/workers/{id}",
+    "POST /api/workers",
+    "PATCH /api/workers/{id}",
+    "DELETE /api/workers/{id}"
+  ]
+}

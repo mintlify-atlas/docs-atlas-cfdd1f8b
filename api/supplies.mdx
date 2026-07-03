@@ -1,0 +1,235 @@
+---
+title: "Supplies API: Track Delivery and Defect Records"
+sidebarTitle: "Supplies"
+description: "CRUD endpoints for supply deliveries. Each supply record links a supplier to a product shipment and tracks defective quantities. Base path: /api/supplies."
+---
+
+The **Supply** resource records individual product delivery events from suppliers to Ferreandina branches. Each supply document embeds a lightweight supplier reference and an array of products included in the shipment — each product item carrying its ID, name, and quantity received. The document also tracks the number of defective units found in the delivery and the entry date. All CRUD operations are available at `/api/supplies`. A special defective-report aggregation query (`GET /api/supplies/defective-report`) is documented in [Advanced Queries](/api/advanced-queries).
+
+<Note>
+  The field `defective_quanity` contains a typo — the letter `t` is missing from "quantity". This spelling is present in both `SupplieModel.java` and the MongoDB collection, and must be used exactly as-is when reading or writing this field.
+</Note>
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the supply record.
+</ResponseField>
+
+<ResponseField name="supplier" type="object" required>
+  Embedded summary of the supplier who made the delivery.
+  <Expandable title="Supplier object">
+    <ResponseField name="_id" type="integer">
+      Supplier identifier (references the Suppliers collection).
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Supplier display name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="products" type="array" required>
+  Array of products included in this supply delivery.
+  <Expandable title="Product item">
+    <ResponseField name="_id" type="integer">
+      Product identifier (references the Products collection).
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Product name slug.
+    </ResponseField>
+    <ResponseField name="quantity" type="integer">
+      Number of units delivered in this shipment.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="defective_quanity" type="integer" required>
+  Number of units found to be defective in this delivery.
+
+  <Note>
+    Note the intentional typo in the field name: `defective_quanity` (missing the `t` in "quantity"). Use this exact spelling in all requests and queries.
+  </Note>
+</ResponseField>
+
+<ResponseField name="entry_date" type="string" required>
+  Date the delivery was received, stored as a string (e.g., `"12/08/2026"`).
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/supplies
+
+Returns an array of all supply records.
+
+```bash
+curl http://localhost:7070/api/supplies
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "supplier": { "_id": 1, "name": "Fierros La Central" },
+    "products": [
+      { "_id": 1, "name": "hammer", "quantity": 45 },
+      { "_id": 2, "name": "power_drill", "quantity": 45 },
+      { "_id": 7, "name": "safety_glasses", "quantity": 45 },
+      { "_id": 6, "name": "copper_wire_12awg", "quantity": 45 }
+    ],
+    "defective_quanity": 12,
+    "entry_date": "12/08/2026"
+  }
+]
+```
+
+---
+
+### GET /api/supplies/\{id\}
+
+Returns a single supply record by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/supplies/1
+```
+
+```json
+{
+  "_id": 1,
+  "supplier": { "_id": 1, "name": "Fierros La Central" },
+  "products": [
+    { "_id": 1, "name": "hammer", "quantity": 45 },
+    { "_id": 2, "name": "power_drill", "quantity": 45 },
+    { "_id": 7, "name": "safety_glasses", "quantity": 45 },
+    { "_id": 6, "name": "copper_wire_12awg", "quantity": 45 }
+  ],
+  "defective_quanity": 12,
+  "entry_date": "12/08/2026"
+}
+```
+
+---
+
+### POST /api/supplies
+
+Creates a new supply record.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new supply record.
+</ParamField>
+
+<ParamField body="supplier" type="object" required>
+  Embedded supplier summary with `_id` (integer) and `name` (string).
+</ParamField>
+
+<ParamField body="products" type="array" required>
+  Array of delivered products. Each item needs `_id` (integer), `name` (string), and `quantity` (integer).
+</ParamField>
+
+<ParamField body="defective_quanity" type="integer" required>
+  Number of defective units received. (Note the typo — this is the exact field name.)
+</ParamField>
+
+<ParamField body="entry_date" type="string" required>
+  Delivery date string (e.g., `"15/09/2026"`).
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/supplies \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 2,
+    "supplier": { "_id": 1, "name": "Fierros La Central" },
+    "products": [
+      { "_id": 10, "name": "drywall_screws", "quantity": 200 }
+    ],
+    "defective_quanity": 3,
+    "entry_date": "01/10/2026"
+  }'
+```
+
+```json
+{ "insertedId": 2 }
+```
+
+---
+
+### PATCH /api/supplies/\{id\}
+
+Partially updates a supply record. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="supplier" type="object">
+  Updated embedded supplier object.
+</ParamField>
+
+<ParamField body="products" type="array">
+  Updated product delivery array.
+</ParamField>
+
+<ParamField body="defective_quanity" type="integer">
+  Updated defective unit count.
+</ParamField>
+
+<ParamField body="entry_date" type="string">
+  Updated entry date string.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/supplies/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "defective_quanity": 8 }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/supplies/\{id\}
+
+Deletes the supply record with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/supplies/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+### GET /api/supplies/defective-report
+
+Returns an aggregated defective-items report across all supply records. See [Advanced Queries](/api/advanced-queries) for full details.
+
+```bash
+curl http://localhost:7070/api/supplies/defective-report
+```
+
+---
+
+## Example Document
+
+```json
+{
+  "_id": 1,
+  "supplier": { "_id": 1, "name": "Fierros La Central" },
+  "products": [
+    { "_id": 1, "name": "hammer", "quantity": 45 },
+    { "_id": 2, "name": "power_drill", "quantity": 45 },
+    { "_id": 7, "name": "safety_glasses", "quantity": 45 },
+    { "_id": 6, "name": "copper_wire_12awg", "quantity": 45 }
+  ],
+  "defective_quanity": 12,
+  "entry_date": "12/08/2026"
+}
+```

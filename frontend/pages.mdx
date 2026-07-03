@@ -1,0 +1,106 @@
+---
+title: "Frontend Pages and Navigation Routes"
+sidebarTitle: "Pages"
+description: "Ferreandina's frontend has pages for every resource with list, create, update, and view routes. Explore the React Router configuration and page structure."
+---
+
+Every resource managed by Ferreandina — customers, branches, categories, products, suppliers, and workers — is served by a set of four dedicated pages: a **list** view, a **create** form, an **update/edit** form, and a **view detail** page. All routes are declared in `src/routes/routes.tsx` using React's `lazy()` API so that each page bundle is fetched from the server only when the user navigates to it. A top-level `<Suspense>` boundary wraps the router outlet and shows a fallback while the chunk loads.
+
+## Route Map
+
+The complete list of routes registered in `routes.tsx` is shown below. Dynamic segments (`:id`) are resolved from the URL at runtime and forwarded to the corresponding service call.
+
+| Path | Component | Description |
+|---|---|---|
+| `/` | `HomePage` | Dashboard overview — live record counts for all resources and navigation shortcuts |
+| `/customers` | `CustomersPage` | List all customer records |
+| `/customers/create` | `CreateCustomerPage` | Form to register a new customer |
+| `/customers/update/:id` | `UpdateCustomerPage` | Pre-filled form to edit an existing customer |
+| `/customers/view/:id` | `ViewCustomerPage` | Read-only detail view for a single customer |
+| `/branches` | `BranchesPage` | List all branch locations |
+| `/branches/create` | `CreateBranchPage` | Form to add a new branch |
+| `/branches/update/:id` | `UpdateBranchPage` | Form to edit a branch's information |
+| `/branches/view/:id` | `ViewBranchPage` | Read-only detail view for a single branch |
+| `/categories` | `CategoriesPage` | List all product categories |
+| `/categories/create` | `CreateCategoryPage` | Form to create a new category |
+| `/categories/update/:id` | `UpdateCategoryPage` | Form to rename or update a category |
+| `/categories/view/:id` | `ViewCategoryPage` | Read-only detail view for a single category |
+| `/products` | `ProductsPage` | List all products in the global catalog |
+| `/products/create` | `CreateProductPage` | Form to add a new product |
+| `/products/update/:id` | `UpdateProductPage` | Form to edit product details, price, or stock |
+| `/products/view/:id` | `ViewProductPage` | Read-only detail view for a single product |
+| `/suppliers` | `SuppliersPage` | List all registered suppliers |
+| `/suppliers/create` | `CreateSupplierPage` | Form to register a new supplier |
+| `/suppliers/update/:id` | `UpdateSupplierPage` | Form to edit supplier contact details |
+| `/suppliers/view/:id` | `ViewSupplierPage` | Read-only detail view for a single supplier |
+| `/workers` | `WorkersPage` | List all workers across branches |
+| `/workers/create` | `CreateWorkerPage` | Form to add a new worker |
+| `/workers/update/:id` | `UpdateWorkerPage` | Form to edit a worker's information |
+| `/workers/view/:id` | `ViewWorkerPage` | Read-only detail view for a single worker |
+| `/advanced-queries` | `AdvancedQueriesPage` | Panel for cross-collection analytical queries and bulk operations |
+
+## Code-Splitting
+
+All page components are loaded with `React.lazy()` so that each route's JavaScript is only downloaded when the user first visits that path. The pattern used in `routes.tsx` is consistent across every resource:
+
+```typescript
+import { lazy } from "react";
+
+const BranchesPage = lazy(() => import("../pages/branches/branch.page"));
+const CreateBranchPage = lazy(
+  () => import("../pages/branches/createBranch.page"),
+);
+const UpdateBranchPage = lazy(
+  () => import("../pages/branches/updateBranch.page"),
+);
+const ViewBranchPage = lazy(() => import("../pages/branches/viewBranch.page"));
+```
+
+The dynamic `import()` call tells Vite to emit a separate chunk for each page during the production build. Each chunk is cached by the browser, so navigating back to a previously visited route incurs no additional network round-trip. The wrapping `<Suspense>` component in the router outlet provides a loading fallback while any chunk is in flight.
+
+<Note>
+  Because every route entry is a plain object (`{ path, element, title }`), the router configuration is data-driven and easy to extend — adding a new resource requires only appending four objects to the `routers` array.
+</Note>
+
+## Advanced Queries Page
+
+The `AdvancedQueriesPage` at `/advanced-queries` provides a self-contained UI panel for six special API operations that go beyond standard CRUD. Each operation is rendered as its own card with an optional input field and a trigger button.
+
+| Card | HTTP Method | Endpoint | Description |
+|---|---|---|---|
+| **Branches Low Stock** | `GET` | `/branches/low-stock` | Lists every product across all branches whose `quantity` is below 10 |
+| **Defective Supplies Report** | `GET` | `/supplies/defective-report` | Aggregates defective quantities grouped by supplier |
+| **Clean Out Of Stock (Global)** | `PATCH` | `/branches/clean-out-of-stock` | Removes all products with `quantity <= 0` from every branch |
+| **Products in Branch** | `GET` | `/branches/:branchId/products` | Returns the product list belonging to a specific branch (requires a Branch ID input) |
+| **Products By Category** | `GET` | `/products/category/:categoryId` | Filters the global catalog to a single category (requires a Category ID input) |
+| **Remove Product from Branch** | `PATCH` | `/branches/:branchId/remove-product/:productId` | Detaches a specific product from a branch (requires both a Branch ID and a Product ID) |
+
+All six operations are triggered by a shared `fetchQuery` function that uses the raw Axios instance from `axios.config.ts`:
+
+```tsx
+const fetchQuery = async (endpoint: string, method = "GET") => {
+  setIsLoading(true);
+  try {
+    const res = await api({ url: endpoint, method: method });
+    const json = res.data;
+
+    if (method === "PATCH" || method === "DELETE") {
+      Swal.fire("Success", json.message || "Operation completed", "success");
+    } else {
+      processAndShowTable(
+        json,
+        endpoint.includes("/products") && endpoint.includes("/branches/"),
+      );
+    }
+  } catch (error) {
+    Swal.fire("Error", "Failed to communicate with backend", "error");
+  }
+  setIsLoading(false);
+};
+```
+
+`GET` responses are normalised by `processAndShowTable`, which flattens nested arrays, derives column definitions dynamically from the first result row's keys, and hydrates a **react-tabulator** `<TableTabulatorComponent>` rendered below the query cards. Mutating operations (`PATCH`) skip the table and show a SweetAlert2 confirmation dialog instead.
+
+## Layout
+
+All routes — including the home page and the advanced-queries page — are rendered inside `Default.layout.tsx`, which provides the consistent outer navigation shell: the sidebar, the top bar, and the content wrapper. The layout component wraps the `<Outlet />` from React Router, meaning every page automatically inherits navigation without any per-page boilerplate.

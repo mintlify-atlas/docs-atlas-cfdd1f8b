@@ -1,0 +1,181 @@
+---
+title: "REST API Overview: Ferreandina NoSQL"
+sidebarTitle: "Overview"
+description: "The Ferreandina REST API runs on port 7070 under /api. All resources support standard CRUD via Javalin CrudHandler. Learn the conventions, response format, and base URL."
+---
+
+The Ferreandina NoSQL REST API is a Java 21 backend built with [Javalin 7](https://javalin.io/), backed by MongoDB. All routes are mounted under the `/api` prefix, the server listens on port **7070**, and CORS is globally enabled for all origins via `it.anyHost()` in `App.java`. Standard CRUD operations are wired through Javalin's `CrudHandler` pattern, which maps HTTP verbs to collection-level and document-level actions automatically. In addition to CRUD, several resources expose custom aggregation endpoints for analytics — see the [Advanced Queries](/api/advanced-queries) page for details.
+
+---
+
+## Base URL
+
+```bash
+http://localhost:7070/api
+```
+
+<Note>
+  The port is hardcoded as `7070` in `App.java`. To use a different port,
+  change the argument passed to `.start(7070)` in the `main` method and restart
+  the server.
+</Note>
+
+---
+
+## Authentication
+
+<Note>
+  This version of the API has **no authentication layer**. All endpoints are
+  publicly accessible without tokens, API keys, or sessions. The API is
+  intended for local development and academic use only — do not expose it on a
+  public network without adding your own security layer.
+</Note>
+
+---
+
+## Response Format
+
+All responses are produced by `ResultUtil`, a shared utility class that serialises every result into a consistent JSON envelope. This means you can rely on the same top-level keys regardless of which resource or operation you are calling.
+
+**List and single-document responses** include a `data` array, a human-readable `message`, the HTTP `status` code, and a `size` count of items in `data`:
+
+```json
+{
+  "status": 200,
+  "message": "There are all ProductModels",
+  "data": [...],
+  "size": 12
+}
+```
+
+**Mutation responses** (updates and deletes) still use the same envelope, but `data` contains a single object with either an `update_count` or a `delete_count` key rather than document records:
+
+```json
+{
+  "status": 200,
+  "message": "ProductModel deleted with id: 1",
+  "data": [{ "delete_count": 1 }],
+  "size": 1
+}
+```
+
+**Error responses** are returned when an exception is caught inside a controller. The envelope switches to HTTP 500 and includes a nested `error` object with the exception details:
+
+```json
+{
+  "status": 500,
+  "message": "",
+  "data": [],
+  "error": {
+    "message": "...",
+    "cause": null,
+    "class": "class java.lang.NumberFormatException",
+    "stack-trace": [...]
+  }
+}
+```
+
+---
+
+## HTTP Methods
+
+All seven resources are registered with Javalin's `crud()` helper, which automatically binds the following HTTP method/path combinations to handler methods:
+
+| Method   | Path                   | Action                          |
+|----------|------------------------|---------------------------------|
+| `GET`    | `/api/{resource}`      | List all documents              |
+| `GET`    | `/api/{resource}/{id}` | Get one document by integer `_id` |
+| `POST`   | `/api/{resource}`      | Create a new document           |
+| `PATCH`  | `/api/{resource}/{id}` | Partial update by `_id`         |
+| `DELETE` | `/api/{resource}/{id}` | Delete by `_id`                 |
+
+<Tip>
+  Some resources also expose additional custom routes (e.g. aggregation
+  pipelines) that sit **alongside** the standard CRUD routes. These are
+  declared before the `crud()` call in `Routes.java` to ensure they match
+  before the generic `{id}` path parameter. See [Advanced
+  Queries](/api/advanced-queries) for the full list.
+</Tip>
+
+---
+
+## Available Resources
+
+<CardGroup cols={2}>
+  <Card title="Branches" icon="code-branch" href="/api/branches">
+    Manage store branches. Each branch embeds its own products array.
+    Route prefix: `/api/branches`
+  </Card>
+  <Card title="Products" icon="box" href="/api/products">
+    Global product catalogue. Supports filtering by category.
+    Route prefix: `/api/products`
+  </Card>
+  <Card title="Categories" icon="tags" href="/api/categories">
+    Product category definitions used to group products.
+    Route prefix: `/api/categories`
+  </Card>
+  <Card title="Suppliers" icon="truck" href="/api/suppliers">
+    Supplier company records linked to supply transactions.
+    Route prefix: `/api/suppliers`
+  </Card>
+  <Card title="Supplies" icon="clipboard-list" href="/api/supplies">
+    Individual supply (inbound shipment) records, including defective quantity tracking.
+    Route prefix: `/api/supplies`
+  </Card>
+  <Card title="Customers" icon="users" href="/api/customers">
+    Customer account records.
+    Route prefix: `/api/customers`
+  </Card>
+  <Card title="Workers" icon="user-tie" href="/api/workers">
+    Employee/worker records assigned to branches.
+    Route prefix: `/api/workers`
+  </Card>
+</CardGroup>
+
+---
+
+## Content Type
+
+Every request body and every response body uses `application/json`. Always set the `Content-Type` header when sending data:
+
+```bash
+curl -X POST http://localhost:7070/api/products \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Hammer", "price": 12.99, "category_id": 3}'
+```
+
+---
+
+## IDs
+
+All `_id` values in the MongoDB collections are **plain integers**, not BSON `ObjectId` strings. When a route contains an `{id}` path parameter, pass the integer directly:
+
+```bash
+# Correct — integer id
+curl http://localhost:7070/api/products/42
+
+# Wrong — ObjectId strings are not used
+curl http://localhost:7070/api/products/64f1a2b3c4d5e6f7a8b9c0d1
+```
+
+---
+
+## Error Responses
+
+When an unhandled exception is thrown inside a controller method, it is caught and forwarded to `ResultUtil.javalinReturn(ctx, e)`. The server responds with HTTP **500** and a JSON body containing a nested `error` object:
+
+```json
+{
+  "status": 500,
+  "message": "",
+  "data": [],
+  "error": {
+    "message": "For input string: \"abc\"",
+    "cause": null,
+    "class": "class java.lang.NumberFormatException",
+    "stack-trace": [...]
+  }
+}
+```
+
+Common triggers include passing a non-integer as an `{id}` path parameter, or referencing a document `_id` that does not exist in the collection.

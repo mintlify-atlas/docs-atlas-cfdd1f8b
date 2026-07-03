@@ -1,0 +1,248 @@
+---
+title: "Frontend API Service Layer with Axios"
+sidebarTitle: "Services"
+description: "Ferreandina's frontend uses a generic Service<T> class to call the REST API. Each resource has its own typed service singleton built on Axios."
+---
+
+The Ferreandina frontend communicates with the backend through a clean, typed service layer. A generic `Service<T>` class defined in `src/services/service.ts` wraps Axios and exposes five standard CRUD methods. Every resource then has its own class extending `Service<T>` — parameterised with the resource's TypeScript model — and exports a pre-instantiated singleton so pages can import and call it directly without ever managing an Axios instance themselves.
+
+## Axios Configuration
+
+The shared Axios instance lives in `src/services/axios.config.ts`. It reads the backend base URL from the `VITE_API_URL` environment variable (set in your `.env` file) and falls back to `http://localhost:8080/` when the variable is absent. The `Content-Type` header is set to `application/json` globally so every request is serialised correctly without per-call configuration.
+
+```typescript
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export default api;
+```
+
+<Note>
+  Set `VITE_API_URL` in `app/fr/.env` to point at your running backend (for example `http://localhost:7070/`). Vite inlines env variables that start with `VITE_` at build time, so the fallback is only used during local development when the file is missing.
+</Note>
+
+## Base Service Class
+
+`src/services/service.ts` contains the generic `Service<T>` class. It accepts an `endpoint` string in its constructor (the resource path segment, e.g. `"branches"`) and uses it to build every URL. All methods return a `Promise<ReturningService>` — a normalised envelope that pages can check for `error: true` before trying to use `data`.
+
+```typescript
+import api from "./axios.config";
+import type ReturningService from "../models/ReturningService.model";
+
+export default class Service<T> {
+  endpoint: string;
+  constructor(endpoint: string) {
+    this.endpoint = endpoint;
+  }
+
+  async get_all(): Promise<ReturningService> {
+    try {
+      const response = await api.get(`/${this.endpoint}`);
+      return {
+        status: response.status,
+        data: response.data.data,
+        error: false,
+      };
+    } catch (error: any) {
+      return { status: error.response?.status || 500, data: null, error: true };
+    }
+  }
+
+  async get_by_id(id: string | number): Promise<ReturningService> {
+    try {
+      const response = await api.get(`/${this.endpoint}/${id}`);
+      const data = response.data.data[0];
+      return { status: response.status, data: data, error: false };
+    } catch (error: any) {
+      return { status: error.response?.status || 500, data: null, error: true };
+    }
+  }
+
+  async post(document: T): Promise<ReturningService> {
+    try {
+      const response = await api.post(`${this.endpoint}`, document);
+      return {
+        status: response.status,
+        data: response.data.data,
+        error: false,
+      };
+    } catch (error: any) {
+      return { status: error.response?.status || 500, data: null, error: true };
+    }
+  }
+
+  async update(id: string | number, document: T): Promise<ReturningService> {
+    try {
+      const response = await api.patch(`/${this.endpoint}/${id}`, document);
+      return { status: response.status, data: response.data, error: false };
+    } catch (error: any) {
+      return { status: error.response?.status || 500, data: null, error: true };
+    }
+  }
+
+  async delete(id: string | number): Promise<ReturningService> {
+    try {
+      const response = await api.delete(`/${this.endpoint}/${id}`);
+      return { status: response.status, data: response.data, error: false };
+    } catch (error: any) {
+      return { status: error.response?.status || 500, data: null, error: true };
+    }
+  }
+}
+```
+
+The five methods and their corresponding HTTP operations are:
+
+| Method | HTTP | URL pattern | Returns |
+|---|---|---|---|
+| `get_all()` | `GET` | `/{endpoint}` | `Promise<ReturningService>` — `data` is the full array |
+| `get_by_id(id)` | `GET` | `/{endpoint}/{id}` | `Promise<ReturningService>` — `data` is `response.data.data[0]` |
+| `post(document)` | `POST` | `/{endpoint}` | `Promise<ReturningService>` — `data` is the created document |
+| `update(id, document)` | `PATCH` | `/{endpoint}/{id}` | `Promise<ReturningService>` — `data` is the raw response body |
+| `delete(id)` | `DELETE` | `/{endpoint}/{id}` | `Promise<ReturningService>` — `data` is the raw response body |
+
+Every method wraps the Axios call in a `try/catch`. On failure it returns `{ error: true, status: <HTTP status or 500>, data: null }` so callers never need to handle a thrown exception — they only need to inspect the `error` flag.
+
+## ReturningService Model
+
+`src/models/ReturningService.model.ts` defines the envelope that every service method resolves to:
+
+```typescript
+export default interface ReturningService {
+  status: number;
+  data: any;
+  message?: string;
+  error?: boolean;
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `number` | HTTP status code returned by the server (or `500` on network error) |
+| `data` | `any` | The unwrapped payload — an array for `get_all`, a single object for `get_by_id`, or the server response body for mutations |
+| `message` | `string` (optional) | Human-readable message from the server (present on some endpoints) |
+| `error` | `boolean` (optional) | `true` when the request failed; `false` (or absent) on success |
+
+## Resource Services
+
+Each resource in the application has its own service file that extends `Service<T>` with the appropriate model type and passes the API endpoint string to the parent constructor. The file also exports a singleton instance, which is the object pages import and call.
+
+Here is `src/services/branch.service.ts` as a representative example:
+
+```typescript
+import type Branch from "../models/Branch.model";
+import Service from "./service";
+
+class BranchService extends Service<Branch> {
+  constructor() {
+    super("branches");
+  }
+}
+
+const branchService = new BranchService();
+export default branchService;
+```
+
+The same pattern is repeated for every other resource:
+
+<CardGroup cols={2}>
+  <Card title="branch.service.ts" icon="code-branch">
+    Endpoint: `branches` · Model: `Branch`
+  </Card>
+  <Card title="category.service.ts" icon="tag">
+    Endpoint: `categories` · Model: `Category`
+  </Card>
+  <Card title="customer.service.ts" icon="user">
+    Endpoint: `customers` · Model: `Customer`
+  </Card>
+  <Card title="product.service.ts" icon="box">
+    Endpoint: `products` · Model: `Product`
+  </Card>
+  <Card title="supplier.service.ts" icon="truck">
+    Endpoint: `suppliers` · Model: `Supplier`
+  </Card>
+  <Card title="Supplie.service.ts" icon="clipboard-list">
+    Endpoint: `supplies` · Model: `Supplie`
+  </Card>
+  <Card title="worker.service.ts" icon="hard-hat">
+    Endpoint: `workers` · Model: `Worker`
+  </Card>
+</CardGroup>
+
+## Usage Example
+
+The following shows how a page component imports a service singleton, calls `get_all()`, and stores the result in local state:
+
+```tsx
+import { useEffect, useState } from "react";
+import branchService from "../services/branch.service";
+import type Branch from "../models/Branch.model";
+
+export default function BranchesPage() {
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const result = await branchService.get_all();
+      if (!result.error) {
+        setBranches(result.data);
+      }
+    };
+    load();
+  }, []);
+
+  // ...render
+}
+```
+
+Because every service is a module-level singleton, there is no need to create instances or pass props — importing the file is enough. The pattern is identical for `get_by_id`, `post`, `update`, and `delete`:
+
+```tsx
+// Fetch a single record
+const result = await branchService.get_by_id(id);
+
+// Create a new record
+const result = await branchService.post({ name: "Centro", city: "Bogotá" });
+
+// Update an existing record
+const result = await branchService.update(id, { city: "Medellín" });
+
+// Delete a record
+const result = await branchService.delete(id);
+```
+
+## TypeScript Models
+
+Each service is parameterised with a TypeScript `interface` that describes the shape of the resource document. This gives full type safety on the `post` and `update` call sites — TypeScript will warn if a required field is missing or has the wrong type.
+
+The `Branch` model is a good example of how models are defined in `src/models/`:
+
+```typescript
+import type Product from "./Product.model";
+
+export default interface Branch {
+  id?: number;
+  name?: string;
+  city?: string;
+  direction?: string;
+  products?: Product[];
+  workers?: Worker[];
+  is_main?: boolean;
+  image?: string;
+}
+```
+
+All fields are optional (`?`) because the same interface is used for both full documents returned by the API and partial update payloads sent to it. The other model interfaces follow the same convention:
+
+| Model file | Key fields |
+|---|---|
+| `Product.model.ts` | `id`, `name`, `description`, `price`, `category_id`, `quantity`, `unitary_weight`, `sould_out_date`, `supplier`, `image` |
+| `Customer.model.ts` | `id`, `alias`, `ni`, `category`, `phone` |
+| `Supplier.model.ts` | `id`, `name`, `email`, `phone`, `direction`, `image` |
+| `Worker.model.ts` | `id`, `name`, `age`, `speciality`, `weight`, `email`, `phone`, `salary`, `image` |

@@ -1,0 +1,114 @@
+---
+title: "Set Up the React Frontend Dashboard"
+sidebarTitle: "Setup"
+description: "Install and run the Ferreandina React frontend. Configure the API base URL, install dependencies with pnpm, and start the Vite dev server."
+---
+
+The `app/fr` directory contains the Ferreandina frontend dashboard — a single-page application built with **Vite 6**, **React 18**, **TypeScript 5.8**, **Tailwind CSS 4**, and **PrimeReact 10**. It communicates with the backend REST API exclusively through an Axios-based service layer and provides full CRUD interfaces for every resource (branches, products, categories, customers, suppliers, and workers) plus an advanced-queries panel for cross-collection reports.
+
+## Prerequisites
+
+Before setting up the frontend, make sure the following tools are available on your machine:
+
+- **Node.js 18 or later** — required by Vite 6 and the TypeScript compiler
+- **pnpm** (recommended) — the project uses a pnpm workspace at the monorepo root; run `npm install -g pnpm` if you don't already have it
+
+<Note>
+  You can use npm or yarn instead of pnpm, but the lock-file committed to the repository is `pnpm-lock.yaml`. Using a different package manager may produce dependency version mismatches.
+</Note>
+
+## Project Structure
+
+The key directories inside `app/fr` are:
+
+```
+app/fr/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── models/         # TypeScript interfaces
+│   ├── pages/          # Route pages (by resource)
+│   ├── routes/         # React Router config
+│   └── services/       # Axios-based API service classes
+├── public/
+├── index.html
+├── package.json
+└── vite.config.ts
+```
+
+Each resource group (branches, products, categories, customers, suppliers, workers) has its own sub-directory under `pages/` containing four page components: list, create, update, and view.
+
+## Install & Run
+
+<Steps>
+  <Step title="Navigate to the frontend package">
+    Move into the React application directory from the monorepo root:
+
+    ```bash
+    cd app/fr
+    ```
+  </Step>
+
+  <Step title="Create the environment file">
+    Create a `.env` file at `app/fr/.env` and set the base URL of your running backend:
+
+    ```env
+    VITE_API_URL=http://localhost:7070/
+    ```
+
+    The Axios config reads this variable at startup. If the variable is absent it falls back to `http://localhost:8080/`.
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all packages declared in `package.json`:
+
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Start the development server">
+    Launch the Vite development server with hot-module replacement:
+
+    ```bash
+    pnpm dev
+    ```
+
+    The dashboard is now available at **http://localhost:5173**. The Vite dev server proxies nothing by default — every API call goes directly to the URL specified in `VITE_API_URL`.
+  </Step>
+</Steps>
+
+## Build for Production
+
+To compile a production-optimised bundle and preview it locally before deploying:
+
+```bash
+pnpm build
+pnpm preview
+```
+
+`pnpm build` runs `tsc -b` for a full TypeScript check and then Vite's Rollup-based bundler. The output lands in `app/fr/dist/`. `pnpm preview` serves that output folder on a local static server so you can verify the build before pushing to a host.
+
+## Key Dependencies
+
+The runtime dependencies that power the dashboard are:
+
+| Package | Version | Purpose |
+|---|---|---|
+| `react` / `react-dom` | 18.2 | Core UI library |
+| `axios` | 1.9 | HTTP client for API calls |
+| `react-router-dom` | 6.30 | Client-side routing |
+| `primereact` | 10.9 | UI component library (tables, dialogs, buttons) |
+| `primeflex` | 4.0 | PrimeReact's CSS utility layer |
+| `tailwindcss` | 4.1 | Utility-first CSS (via `@tailwindcss/vite` plugin) |
+| `react-hot-toast` | 2.4 | Lightweight toast notifications |
+| `sweetalert2` | 11.21 | Modal alert / confirmation dialogs |
+| `formik` | 2.4 | Form state management |
+| `yup` | 1.6 | Schema-based form validation |
+| `react-tabulator` | 0.21 | Advanced data grid (used in Advanced Queries) |
+| `lucide-react` | 0.477 | Icon set |
+
+<Tip>
+  For the best development experience, install the following VS Code extensions:
+  - **Tailwind CSS IntelliSense** (`bradlc.vscode-tailwindcss`) — autocomplete and linting for Tailwind utility classes
+  - **TypeScript + JavaScript** (`ms-vscode.vscode-typescript-next`) — enhanced type-checking and IntelliSense for `.ts` / `.tsx` files
+</Tip>

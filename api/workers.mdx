@@ -1,0 +1,286 @@
+---
+title: "Workers API: Manage Store Employees"
+sidebarTitle: "Workers"
+description: "CRUD endpoints for store worker records. Workers have a salary, branch assignment, and appear as embedded documents in branch records. Base path: /api/workers."
+---
+
+The **Worker** resource represents a Ferreandina store employee. Each worker document stores personal details (name, age, weight, email, phone), a job speciality (e.g., `"stock clerk"`, `"store manager"`, `"electrical specialist"`), a salary, and a profile image URL. Workers are associated with a branch — when a worker is assigned to a branch, a lightweight summary (`_id`, `name`, `image`) is embedded inside that branch document's `workers` array. All CRUD operations are available at `/api/workers`.
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the worker.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Full name of the worker (e.g., `"Beau Jackson"`, `"Eduardo Sánchez"`).
+</ResponseField>
+
+<ResponseField name="age" type="integer" required>
+  Age of the worker in years.
+</ResponseField>
+
+<ResponseField name="speciality" type="string" required>
+  Job role or specialisation (e.g., `"stock clerk"`, `"plumbing specialist"`, `"store manager"`, `"electrical specialist"`).
+</ResponseField>
+
+<ResponseField name="weight" type="number" required>
+  Body weight of the worker in kilograms (float).
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Work email address.
+</ResponseField>
+
+<ResponseField name="phone" type="string" required>
+  Contact phone number.
+</ResponseField>
+
+<ResponseField name="salary" type="number" required>
+  Monthly salary (float, in local currency).
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the worker's profile photo.
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/workers
+
+Returns an array of all worker documents.
+
+```bash
+curl http://localhost:7070/api/workers
+```
+
+```json
+[
+  {
+    "_id": 1,
+    "name": "Beau Jackson",
+    "age": 40,
+    "speciality": "stock clerk",
+    "weight": 65,
+    "email": "beau.jackson@example.com",
+    "phone": "(134)-254-6034",
+    "salary": 6284217,
+    "image": "https://randomuser.me/api/portraits/men/75.jpg"
+  }
+]
+```
+
+---
+
+### GET /api/workers/\{id\}
+
+Returns a single worker by their integer `_id`.
+
+```bash
+curl http://localhost:7070/api/workers/1
+```
+
+```json
+{
+  "_id": 1,
+  "name": "Beau Jackson",
+  "age": 40,
+  "speciality": "stock clerk",
+  "weight": 65,
+  "email": "beau.jackson@example.com",
+  "phone": "(134)-254-6034",
+  "salary": 6284217,
+  "image": "https://randomuser.me/api/portraits/men/75.jpg"
+}
+```
+
+---
+
+### POST /api/workers
+
+Creates a new worker document.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new worker.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Full name of the worker.
+</ParamField>
+
+<ParamField body="age" type="integer" required>
+  Age of the worker.
+</ParamField>
+
+<ParamField body="speciality" type="string" required>
+  Job role or specialisation.
+</ParamField>
+
+<ParamField body="weight" type="number" required>
+  Body weight in kg.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Work email address.
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number.
+</ParamField>
+
+<ParamField body="salary" type="number" required>
+  Monthly salary.
+</ParamField>
+
+<ParamField body="image" type="string">
+  URL of the worker's profile photo.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/workers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 310,
+    "name": "Laura Gómez",
+    "age": 29,
+    "speciality": "cashier",
+    "weight": 58.0,
+    "email": "laura.gomez@ferreandina.com",
+    "phone": "+57 312 000 11 22",
+    "salary": 2800000,
+    "image": "https://randomuser.me/api/portraits/women/33.jpg"
+  }'
+```
+
+```json
+{ "insertedId": 310 }
+```
+
+---
+
+### PATCH /api/workers/\{id\}
+
+Partially updates a worker record. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="name" type="string">
+  Updated name.
+</ParamField>
+
+<ParamField body="age" type="integer">
+  Updated age.
+</ParamField>
+
+<ParamField body="speciality" type="string">
+  Updated job role.
+</ParamField>
+
+<ParamField body="weight" type="number">
+  Updated weight.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Updated email.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Updated phone.
+</ParamField>
+
+<ParamField body="salary" type="number">
+  Updated salary.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated profile image URL.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/workers/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "salary": 6500000, "speciality": "inventory supervisor" }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/workers/\{id\}
+
+Deletes the worker with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/workers/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+## Example Documents
+
+```json
+[
+  {
+    "_id": 1,
+    "name": "Beau Jackson",
+    "age": 40,
+    "speciality": "stock clerk",
+    "weight": 65,
+    "email": "beau.jackson@example.com",
+    "phone": "(134)-254-6034",
+    "salary": 6284217,
+    "image": "https://randomuser.me/api/portraits/men/75.jpg"
+  },
+  {
+    "_id": 2,
+    "name": "Elizabeth Ginnish",
+    "age": 40,
+    "speciality": "warehouse worker",
+    "weight": 104,
+    "email": "elizabeth.ginnish@example.com",
+    "phone": "Z13 N23-4086",
+    "salary": 6793601,
+    "image": "https://randomuser.me/api/portraits/women/79.jpg"
+  },
+  {
+    "_id": 3,
+    "name": "Inés Santos",
+    "age": 69,
+    "speciality": "customer service representative",
+    "weight": 70,
+    "email": "ines.santos@example.com",
+    "phone": "989-200-418",
+    "salary": 2971891,
+    "image": "https://randomuser.me/api/portraits/women/56.jpg"
+  }
+]
+```
+
+The seed dataset includes a wide range of specialities found across Ferreandina branches:
+
+| Speciality                        | Example worker ID |
+|-----------------------------------|-------------------|
+| stock clerk                       | 1                 |
+| warehouse worker                  | 2                 |
+| customer service representative   | 3                 |
+| paint specialist                  | 4                 |
+| accountant                        | 7                 |
+| forklift operator                 | 8                 |
+| inventory supervisor              | 9                 |
+| store manager                     | 45                |
+| electrical specialist             | 54                |
+| plumbing specialist               | 21                |
+| power tools specialist            | 17                |
+| locksmithing specialist           | 47                |

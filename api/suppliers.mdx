@@ -1,0 +1,188 @@
+---
+title: "Suppliers API: Track Hardware Product Vendors"
+sidebarTitle: "Suppliers"
+description: "CRUD endpoints for hardware suppliers. Supplier records store contact info and link to products and supply deliveries. Base path: /api/suppliers."
+---
+
+The **Supplier** resource represents a vendor that provides hardware products to Ferreandina. Each supplier document stores the company name, contact email, phone number, and a profile image URL. Suppliers are referenced in two places: as an embedded `supplier` object inside each Product document, and as an embedded `supplier` object inside each Supply (delivery) record. The seed dataset ships with hundreds of supplier entries. All CRUD operations are available at `/api/suppliers`.
+
+---
+
+## Document Schema
+
+<ResponseField name="_id" type="integer" required>
+  Unique integer identifier for the supplier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Company or trading name of the supplier (e.g., `"Fierros La Central"`, `"Wright Ltd"`).
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Primary contact email address for the supplier.
+</ResponseField>
+
+<ResponseField name="phone" type="string" required>
+  Contact phone number (format varies by record).
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the supplier's profile/logo image.
+</ResponseField>
+
+---
+
+## Endpoints
+
+### GET /api/suppliers
+
+Returns an array of all supplier documents.
+
+```bash
+curl http://localhost:7070/api/suppliers
+```
+
+```json
+[
+  {
+    "_id": 0,
+    "name": "Holder, Lawrence and Rose",
+    "email": "zpage@murray.com",
+    "phone": "910.887.5652",
+    "image": "https://ui-avatars.com/api/?name=Holder,LawrenceandRose&background=random&color=a53ec9&size=512"
+  },
+  {
+    "_id": 1,
+    "name": "Wright Ltd",
+    "email": "michael86@petersen-freeman.com",
+    "phone": "(633)358-1461",
+    "image": "https://ui-avatars.com/api/?name=WrightLtd&background=random&color=cdf5f7&size=512"
+  }
+]
+```
+
+---
+
+### GET /api/suppliers/\{id\}
+
+Returns a single supplier by its integer `_id`.
+
+```bash
+curl http://localhost:7070/api/suppliers/1
+```
+
+```json
+{
+  "_id": 1,
+  "name": "Wright Ltd",
+  "email": "michael86@petersen-freeman.com",
+  "phone": "(633)358-1461",
+  "image": "https://ui-avatars.com/api/?name=WrightLtd&background=random&color=cdf5f7&size=512"
+}
+```
+
+---
+
+### POST /api/suppliers
+
+Creates a new supplier document.
+
+**Request Body**
+
+<ParamField body="_id" type="integer" required>
+  Unique integer ID for the new supplier.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Supplier company name.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Contact email address.
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number.
+</ParamField>
+
+<ParamField body="image" type="string">
+  URL of the supplier profile image.
+</ParamField>
+
+```bash
+curl -X POST http://localhost:7070/api/suppliers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": 500,
+    "name": "Fierros La Central",
+    "email": "contacto@fierroslac.com",
+    "phone": "+57-601-555-0100",
+    "image": "https://ui-avatars.com/api/?name=FierrosLaCentral&background=random&size=512"
+  }'
+```
+
+```json
+{ "insertedId": 500 }
+```
+
+---
+
+### PATCH /api/suppliers/\{id\}
+
+Partially updates a supplier. Include only the fields to change.
+
+**Request Body**
+
+<ParamField body="name" type="string">
+  Updated company name.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Updated email address.
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Updated phone number.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated image URL.
+</ParamField>
+
+```bash
+curl -X PATCH http://localhost:7070/api/suppliers/1 \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "support@wrightltd.com", "phone": "+1-800-555-0191" }'
+```
+
+```json
+{ "modifiedCount": 1 }
+```
+
+---
+
+### DELETE /api/suppliers/\{id\}
+
+Deletes the supplier with the given integer `_id`.
+
+```bash
+curl -X DELETE http://localhost:7070/api/suppliers/1
+```
+
+```json
+{ "deletedCount": 1 }
+```
+
+---
+
+## Example Document
+
+```json
+{
+  "_id": 2,
+  "name": "Weber Inc",
+  "email": "wesley57@collins.com",
+  "phone": "559.469.7175",
+  "image": "https://ui-avatars.com/api/?name=WeberInc&background=random&color=2176d5&size=512"
+}
+```
