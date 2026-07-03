@@ -1,7 +1,7 @@
 ---
-title: "Configure MongoDB Connection and Environment"
+title: "Configure MongoDB and Environment Variables for Ferreandina"
 sidebarTitle: "Configuration"
-description: "Configure the Ferreandina backend via a .env file. Covers MONGODB_URI, MONGODB_DB_NAME, POJO codec setup, and CORS configuration."
+description: "Configure the Ferreandina backend via a .env file. Covers MONGODB_URI, MONGODB_DB_NAME, POJO codec setup, and CORS configuration in detail."
 ---
 
 The Ferreandina backend reads all runtime configuration from a `.env` file using the [dotenv-java](https://github.com/cdimascio/dotenv-java) library. The `.env` file is loaded inside `Connection.java` the moment any controller opens its first MongoDB collection — no system-level environment variables or JVM flags are needed.

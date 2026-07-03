@@ -1,10 +1,10 @@
 ---
-title: "Branches API: Manage Ferreandina Store Locations"
+title: "Branches API – Ferreandina Store Locations & CRUD"
 sidebarTitle: "Branches"
-description: "CRUD endpoints for Ferreandina branch locations. Each branch embeds its product inventory and worker list. Base path: /api/branches."
+description: "CRUD endpoints for Ferreandina branch locations. Each branch embeds its product inventory and assigned workers. Base path: /api/branches."
 ---
 
-The **Branch** resource represents a physical Ferreandina hardware store location. Each branch document stores the branch name, city, street address, main-branch flag, and a cover image URL. Two embedded arrays are also maintained directly inside the branch document: a `products` array capturing current inventory (product ID, name, quantity, and image) and a `workers` array listing staff assigned to that branch (worker ID, name, and image). All CRUD operations are available at `/api/branches`. Four additional aggregation-based queries (e.g., city lookups, inventory reports) are also supported — see [Advanced Queries](/api/advanced-queries).
+The **Branch** resource represents a physical Ferreandina hardware store location. Each branch document stores the branch name, city, street address, main-branch flag, and a cover image URL. Two embedded arrays are maintained directly inside the branch document: a `products` array capturing current inventory (product ID, name, quantity, and image) and a `workers` array listing staff assigned to that branch (worker ID, name, and image). All CRUD operations are available at `/api/branches`. Four additional aggregation-based queries (city lookups, inventory reports, and more) are also supported — see [Advanced Queries](/api/advanced-queries).
 
 ---
 
@@ -88,8 +88,8 @@ curl http://localhost:7070/api/branches
     "direction": "Cra 3 #23-12",
     "is_main": false,
     "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/branches/ferreandina-manizales.webp",
-    "products": [ ... ],
-    "workers": [ ... ]
+    "products": [ "..." ],
+    "workers": [ "..." ]
   }
 ]
 ```

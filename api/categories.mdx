@@ -1,7 +1,7 @@
 ---
-title: "Categories API: Organize Products by Type"
+title: "Categories API – Organize Hardware Products by Type"
 sidebarTitle: "Categories"
-description: "CRUD endpoints for product categories. Categories group hardware products and can be filtered by ID. Base path: /api/categories."
+description: "CRUD endpoints for product categories. Categories organize hardware products by type. Products reference a category via category_id. Base: /api/categories."
 ---
 
 The **Category** resource organizes Ferreandina's product catalog into logical groupings such as hand tools, electrical, fasteners, and paints. Every product document holds a `category_id` that references one of these categories. Category documents are intentionally lean — just an ID, a name slug, a description, and a cover image URL. The full catalog ships with 19 predefined categories, but they can be created, updated, and removed through the standard CRUD endpoints at `/api/categories`.
@@ -47,10 +47,10 @@ curl http://localhost:7070/api/categories
     "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/adhesives-and-sealants.webp"
   },
   {
-    "_id": 11,
-    "name": "hand-tools",
-    "description": "Tools for mechanical, assembly and repair tasks without electricity, such as hammers, screwdrivers, wrenches, pliers and other manual tools",
-    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/hand-tools.webp"
+    "_id": 2,
+    "name": "pvc",
+    "description": "PVC products such as pipes, fittings, elbows, joints, valves and accessories for water, drainage and other systems",
+    "image": "https://cdn.jsdelivr.net/gh/tutosrive/images-projects-srm-trg@main/others/ferreandina-nosql/categories/pvc.webp"
   }
 ]
 ```
@@ -172,11 +172,12 @@ curl -X DELETE http://localhost:7070/api/categories/20
 
 The seed data ships with 19 categories in total, ranging from `construction-materials` (`_id: 1`) to `pipes-and-curtain-accessories` (`_id: 19`). Some examples:
 
-| `_id` | `name`                    |
-|-------|---------------------------|
-| 1     | construction-materials    |
-| 5     | electrical                |
-| 10    | power-tools               |
-| 11    | hand-tools                |
-| 15    | adhesives-and-sealants    |
-| 18    | fasteners                 |
+| `_id` | `name`                         |
+|-------|--------------------------------|
+| 1     | construction-materials         |
+| 5     | electrical                     |
+| 10    | power-tools                    |
+| 11    | hand-tools                     |
+| 15    | adhesives-and-sealants         |
+| 18    | fasteners                      |
+| 19    | pipes-and-curtain-accessories  |

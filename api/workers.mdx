@@ -1,7 +1,7 @@
 ---
-title: "Workers API: Manage Store Employees"
+title: "Workers API – Manage Ferreandina Store Employees"
 sidebarTitle: "Workers"
-description: "CRUD endpoints for store worker records. Workers have a salary, branch assignment, and appear as embedded documents in branch records. Base path: /api/workers."
+description: "CRUD endpoints for store worker records. Workers have a speciality, salary, and are embedded in branch documents. Base path: /api/workers."
 ---
 
 The **Worker** resource represents a Ferreandina store employee. Each worker document stores personal details (name, age, weight, email, phone), a job speciality (e.g., `"stock clerk"`, `"store manager"`, `"electrical specialist"`), a salary, and a profile image URL. Workers are associated with a branch — when a worker is assigned to a branch, a lightweight summary (`_id`, `name`, `image`) is embedded inside that branch document's `workers` array. All CRUD operations are available at `/api/workers`.
@@ -16,6 +16,10 @@ The **Worker** resource represents a Ferreandina store employee. Each worker doc
 
 <ResponseField name="name" type="string" required>
   Full name of the worker (e.g., `"Beau Jackson"`, `"Eduardo Sánchez"`).
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL of the worker's profile photo.
 </ResponseField>
 
 <ResponseField name="age" type="integer" required>
@@ -42,10 +46,6 @@ The **Worker** resource represents a Ferreandina store employee. Each worker doc
   Monthly salary (float, in local currency).
 </ResponseField>
 
-<ResponseField name="image" type="string" required>
-  URL of the worker's profile photo.
-</ResponseField>
-
 ---
 
 ## Endpoints
@@ -63,13 +63,13 @@ curl http://localhost:7070/api/workers
   {
     "_id": 1,
     "name": "Beau Jackson",
+    "image": "https://randomuser.me/api/portraits/men/75.jpg",
     "age": 40,
     "speciality": "stock clerk",
     "weight": 65,
     "email": "beau.jackson@example.com",
     "phone": "(134)-254-6034",
-    "salary": 6284217,
-    "image": "https://randomuser.me/api/portraits/men/75.jpg"
+    "salary": 6284217
   }
 ]
 ```
@@ -88,13 +88,13 @@ curl http://localhost:7070/api/workers/1
 {
   "_id": 1,
   "name": "Beau Jackson",
+  "image": "https://randomuser.me/api/portraits/men/75.jpg",
   "age": 40,
   "speciality": "stock clerk",
   "weight": 65,
   "email": "beau.jackson@example.com",
   "phone": "(134)-254-6034",
-  "salary": 6284217,
-  "image": "https://randomuser.me/api/portraits/men/75.jpg"
+  "salary": 6284217
 }
 ```
 
@@ -114,6 +114,10 @@ Creates a new worker document.
   Full name of the worker.
 </ParamField>
 
+<ParamField body="image" type="string">
+  URL of the worker's profile photo.
+</ParamField>
+
 <ParamField body="age" type="integer" required>
   Age of the worker.
 </ParamField>
@@ -123,7 +127,7 @@ Creates a new worker document.
 </ParamField>
 
 <ParamField body="weight" type="number" required>
-  Body weight in kg.
+  Body weight in kg (float).
 </ParamField>
 
 <ParamField body="email" type="string" required>
@@ -135,11 +139,7 @@ Creates a new worker document.
 </ParamField>
 
 <ParamField body="salary" type="number" required>
-  Monthly salary.
-</ParamField>
-
-<ParamField body="image" type="string">
-  URL of the worker's profile photo.
+  Monthly salary (float).
 </ParamField>
 
 ```bash
@@ -148,13 +148,13 @@ curl -X POST http://localhost:7070/api/workers \
   -d '{
     "_id": 310,
     "name": "Laura Gómez",
+    "image": "https://randomuser.me/api/portraits/women/33.jpg",
     "age": 29,
     "speciality": "cashier",
     "weight": 58.0,
     "email": "laura.gomez@ferreandina.com",
     "phone": "+57 312 000 11 22",
-    "salary": 2800000,
-    "image": "https://randomuser.me/api/portraits/women/33.jpg"
+    "salary": 2800000
   }'
 ```
 
@@ -172,6 +172,10 @@ Partially updates a worker record. Include only the fields to change.
 
 <ParamField body="name" type="string">
   Updated name.
+</ParamField>
+
+<ParamField body="image" type="string">
+  Updated profile image URL.
 </ParamField>
 
 <ParamField body="age" type="integer">
@@ -196,10 +200,6 @@ Partially updates a worker record. Include only the fields to change.
 
 <ParamField body="salary" type="number">
   Updated salary.
-</ParamField>
-
-<ParamField body="image" type="string">
-  Updated profile image URL.
 </ParamField>
 
 ```bash
@@ -235,35 +235,35 @@ curl -X DELETE http://localhost:7070/api/workers/1
   {
     "_id": 1,
     "name": "Beau Jackson",
+    "image": "https://randomuser.me/api/portraits/men/75.jpg",
     "age": 40,
     "speciality": "stock clerk",
     "weight": 65,
     "email": "beau.jackson@example.com",
     "phone": "(134)-254-6034",
-    "salary": 6284217,
-    "image": "https://randomuser.me/api/portraits/men/75.jpg"
+    "salary": 6284217
   },
   {
     "_id": 2,
     "name": "Elizabeth Ginnish",
+    "image": "https://randomuser.me/api/portraits/women/79.jpg",
     "age": 40,
     "speciality": "warehouse worker",
     "weight": 104,
     "email": "elizabeth.ginnish@example.com",
     "phone": "Z13 N23-4086",
-    "salary": 6793601,
-    "image": "https://randomuser.me/api/portraits/women/79.jpg"
+    "salary": 6793601
   },
   {
     "_id": 3,
     "name": "Inés Santos",
+    "image": "https://randomuser.me/api/portraits/women/56.jpg",
     "age": 69,
     "speciality": "customer service representative",
     "weight": 70,
     "email": "ines.santos@example.com",
     "phone": "989-200-418",
-    "salary": 2971891,
-    "image": "https://randomuser.me/api/portraits/women/56.jpg"
+    "salary": 2971891
   }
 ]
 ```

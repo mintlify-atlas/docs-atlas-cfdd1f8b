@@ -1,7 +1,7 @@
 ---
-title: "Controllers, Services, and the Generic CRUD Pattern"
+title: "Generic Controller and Service CRUD Pattern in Ferreandina"
 sidebarTitle: "Controllers"
-description: "The Ferreandina backend uses a generic Controller<T> and Service<T> pattern. Every resource gets full CRUD with zero boilerplate, plus hooks for custom queries."
+description: "Ferreandina uses a generic Controller<T> and Service<T> pattern to provide full CRUD for every resource with minimal boilerplate and custom query hooks."
 ---
 
 Every resource in the Ferreandina API — branches, products, suppliers, customers, workers, and more — is served by a concrete class that extends the abstract `Controller<T extends Model>`. `Controller<T>` implements Javalin's `CrudHandler` interface and provides `create`, `getAll`, `getOne`, `update`, and `delete` out of the box. Adding a new resource requires nothing more than a three-line subclass that names the collection. Custom aggregation or filter endpoints can be layered on top as ordinary methods.
@@ -257,7 +257,7 @@ All methods are `final` to prevent accidental overriding in subclasses. Controll
 
 <CardGroup cols={3}>
   <Card title="ResultUtil&lt;T&gt;" icon="envelope">
-    A uniform JSON response wrapper. All responses share the same envelope shape — `message`, `status`, `data` (array), and `size`. Dedicated overloads handle `FindIterable<T>`, single documents, plain strings, and exceptions. On error, `javalinReturn(ctx, Exception e)` sets HTTP status 500 and returns a structured error object with `message`, `cause`, `class`, and `stack-trace`.
+    A uniform JSON response wrapper. Normal responses use the envelope `{ message, status, data, size }`. Dedicated overloads handle `FindIterable<T>`, single documents, plain strings, and update/delete counts. On error, `javalinReturn(ctx, Exception e)` sets HTTP status 500 and returns `{ message, data, error, status }` where `error` contains `message`, `cause`, `class`, and `stack-trace` fields.
   </Card>
   <Card title="Validator&lt;T&gt;" icon="shield-check">
     Thin wrapper around Javalin's built-in body validator. `validateBody(Class<T>, Context)` calls `ctx.bodyValidator(clazz)` with a non-null check and calls `.get()` to deserialize and validate in one step. Javalin automatically returns a `400 Bad Request` if validation fails.

@@ -1,5 +1,5 @@
 ---
-title: "Products API: Manage Hardware Store Inventory"
+title: "Products API – Hardware Store Inventory Management"
 sidebarTitle: "Products"
 description: "CRUD endpoints for hardware store products. Each product has pricing, weight, category, stock quantity, and a supplier reference. Base path: /api/products."
 ---
@@ -23,7 +23,7 @@ The **Product** resource represents an individual item sold across Ferreandina s
 </ResponseField>
 
 <ResponseField name="price" type="number" required>
-  Unit selling price in USD (double precision).
+  Unit selling price (double precision).
 </ResponseField>
 
 <ResponseField name="category_id" type="integer" required>
@@ -42,7 +42,7 @@ The **Product** resource represents an individual item sold across Ferreandina s
   Date string indicating when this product is expected to sell out. `null` if not applicable.
 
   <Note>
-    The field name `sould_out_date` is a typo for "sold out date" — it is preserved as-is in the source model and database for backward compatibility.
+    The field name `sould_out_date` is a source-level typo for "sold out date". It is preserved exactly as-is in `ProductModel.java` and the MongoDB collection for backward compatibility.
   </Note>
 </ResponseField>
 

@@ -173,6 +173,9 @@ The same pattern is repeated for every other resource:
   <Card title="worker.service.ts" icon="hard-hat">
     Endpoint: `workers` · Model: `Worker`
   </Card>
+  <Card title="price_change.service.ts" icon="arrow-trend-up">
+    Endpoint: `price_changes` · Model: `PriceChange`
+  </Card>
 </CardGroup>
 
 ## Usage Example
@@ -242,7 +245,11 @@ All fields are optional (`?`) because the same interface is used for both full d
 
 | Model file | Key fields |
 |---|---|
-| `Product.model.ts` | `id`, `name`, `description`, `price`, `category_id`, `quantity`, `unitary_weight`, `sould_out_date`, `supplier`, `image` |
+| `Branch.model.ts` | `id`, `name`, `city`, `direction`, `products`, `workers`, `is_main`, `image` |
+| `Category.model.ts` | `id`, `name`, `description`, `image` |
 | `Customer.model.ts` | `id`, `alias`, `ni`, `category`, `phone` |
+| `Product.model.ts` | `id`, `name`, `description`, `price`, `category_id`, `quantity`, `unitary_weight`, `sould_out_date`, `supplier`, `image` |
 | `Supplier.model.ts` | `id`, `name`, `email`, `phone`, `direction`, `image` |
+| `Supplie.model.ts` | `id`, `supplier`, `products`, `defective_quantity`, `entry_date` |
 | `Worker.model.ts` | `id`, `name`, `age`, `speciality`, `weight`, `email`, `phone`, `salary`, `image` |
+| `PriceChange.model.ts` | `id`, `productid`, `changes` |

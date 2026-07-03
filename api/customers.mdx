@@ -1,10 +1,10 @@
 ---
-title: "Customers API: Manage Store Customer Records"
+title: "Customers API – Manage Ferreandina Customer Records"
 sidebarTitle: "Customers"
-description: "CRUD endpoints for customer records. Customers have contact info including NI, alias, category, and phone. Base path: /api/customers."
+description: "CRUD endpoints for customer records. Customers are identified by NI, alias, category (company or person), and phone. Base path: /api/customers."
 ---
 
-The **Customer** resource stores information about individuals and companies that purchase products from Ferreandina. Rather than a traditional `name`/`email` schema, customer documents follow a Colombian-market pattern: each customer is identified by a **NI** (Número de Identificación, stored under the BSON key `"NI"`), a unique lowercase `alias`, a `category` indicating the customer type (e.g., `"company"`), and a `phone` number. The seed dataset ships with hundreds of customer records. All CRUD operations are available at `/api/customers`.
+The **Customer** resource stores information about individuals and companies that purchase products from Ferreandina. Rather than a traditional `name`/`email` schema, customer documents follow a Colombian-market pattern: each customer is identified by a **NI** (Número de Identificación, stored under the BSON key `"NI"`), a unique lowercase `alias`, a `category` indicating the customer type (`"company"` or `"person"`), and a `phone` number. There is no `name` or `email` field in this resource. The seed dataset ships with thousands of customer records. All CRUD operations are available at `/api/customers`.
 
 ---
 
@@ -23,7 +23,7 @@ The **Customer** resource stores information about individuals and companies tha
 </ResponseField>
 
 <ResponseField name="category" type="string" required>
-  Customer type or segment. Typical value in the seed data is `"company"`.
+  Customer type. Accepted values: `"company"` or `"person"`.
 </ResponseField>
 
 <ResponseField name="phone" type="string" required>
@@ -102,7 +102,7 @@ Creates a new customer document.
 </ParamField>
 
 <ParamField body="category" type="string" required>
-  Customer category (e.g., `"company"`, `"individual"`).
+  Customer category: `"company"` or `"person"`.
 </ParamField>
 
 <ParamField body="phone" type="string" required>
@@ -142,7 +142,7 @@ Partially updates a customer. Include only the fields to change.
 </ParamField>
 
 <ParamField body="category" type="string">
-  Updated category.
+  Updated category (`"company"` or `"person"`).
 </ParamField>
 
 <ParamField body="phone" type="string">
@@ -171,22 +171,6 @@ curl -X DELETE http://localhost:7070/api/customers/1
 
 ```json
 { "deletedCount": 1 }
-```
-
----
-
-## HTTP File Example
-
-The following snippet shows how to test the customer endpoints using a `.http` file (compatible with VS Code REST Client or IntelliJ HTTP Client):
-
-```http
-@url = http://localhost:7070/api/customers
-
-### Get All
-GET {{url}}
-
-### Get One By ID
-GET {{url}}/1
 ```
 
 ---

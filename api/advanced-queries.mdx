@@ -1,7 +1,7 @@
 ---
-title: "Advanced MongoDB Aggregation Queries"
+title: "Advanced Queries: MongoDB Pipelines and Array Updates"
 sidebarTitle: "Advanced Queries"
-description: "Five specialized endpoints run MongoDB aggregation pipelines for inventory analytics: low-stock alerts, defective supply reports, branch product queries, and cleanup operations."
+description: "Six endpoints use MongoDB pipelines and array operators: low-stock alerts, branch product queries, category filters, defective reports, and bulk cleanup."
 ---
 
 Beyond standard CRUD, the Ferreandina API exposes six specialised operations that run MongoDB aggregation pipelines or targeted array-mutation operators directly against the database. These endpoints use stages such as `$unwind`, `$match`, `$group`, `$project`, and the update operator `$pull` to handle inventory analytics and bulk cleanup tasks that cannot be expressed as simple document lookups. All six are registered in `Routes.java` **before** their resource's `crud()` call, ensuring the specific path segments (`low-stock`, `clean-out-of-stock`, `defective-report`, etc.) take priority over the generic `{id}` parameter.

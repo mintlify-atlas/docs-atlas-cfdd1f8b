@@ -1,5 +1,5 @@
 ---
-title: "System Architecture: Two-Tier NoSQL Application"
+title: "Architecture Overview: Ferreandina NoSQL Two-Tier Design"
 sidebarTitle: "Overview"
 description: "Ferreandina NoSQL follows a two-tier architecture: a Java/Javalin REST API communicates with MongoDB, while a React SPA consumes the API over HTTP."
 ---
@@ -116,7 +116,7 @@ Javalin.create(
 
 ## API Base Path
 
-All endpoints are registered under the `/api` prefix inside `Routes.java`. The router exposes **seven CRUD resources** and **three special-purpose endpoints**.
+All endpoints are registered under the `/api` prefix inside `Routes.java`. The router exposes **seven CRUD resources** and **six special-purpose endpoints**.
 
 **CRUD resources** (each provides `GET /`, `GET /{id}`, `POST /`, `PATCH /{id}`, `DELETE /{id}`):
 
@@ -130,7 +130,7 @@ All endpoints are registered under the `/api` prefix inside `Routes.java`. The r
 | Customers | `/api/customers` |
 | Workers | `/api/workers` |
 
-**Special endpoints**:
+**Special endpoints** (six total):
 
 | Method | Path | Description |
 |---|---|---|

@@ -1,7 +1,7 @@
 ---
-title: "REST API Overview: Ferreandina NoSQL"
+title: "Ferreandina NoSQL REST API Overview and Conventions"
 sidebarTitle: "Overview"
-description: "The Ferreandina REST API runs on port 7070 under /api. All resources support standard CRUD via Javalin CrudHandler. Learn the conventions, response format, and base URL."
+description: "Ferreandina REST API on port 7070 under /api. Covers base URL, no-auth policy, JSON envelope, HTTP method table, and links to all seven resource routes."
 ---
 
 The Ferreandina NoSQL REST API is a Java 21 backend built with [Javalin 7](https://javalin.io/), backed by MongoDB. All routes are mounted under the `/api` prefix, the server listens on port **7070**, and CORS is globally enabled for all origins via `it.anyHost()` in `App.java`. Standard CRUD operations are wired through Javalin's `CrudHandler` pattern, which maps HTTP verbs to collection-level and document-level actions automatically. In addition to CRUD, several resources expose custom aggregation endpoints for analytics — see the [Advanced Queries](/api/advanced-queries) page for details.

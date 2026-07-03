@@ -1,13 +1,17 @@
 ---
-title: "Supplies API: Track Delivery and Defect Records"
+title: "Supplies API – Delivery and Defect Tracking Records"
 sidebarTitle: "Supplies"
-description: "CRUD endpoints for supply deliveries. Each supply record links a supplier to a product shipment and tracks defective quantities. Base path: /api/supplies."
+description: "CRUD endpoints for supply deliveries. Each record links a supplier to a product shipment and tracks defective unit quantities. Base path: /api/supplies."
 ---
 
-The **Supply** resource records individual product delivery events from suppliers to Ferreandina branches. Each supply document embeds a lightweight supplier reference and an array of products included in the shipment — each product item carrying its ID, name, and quantity received. The document also tracks the number of defective units found in the delivery and the entry date. All CRUD operations are available at `/api/supplies`. A special defective-report aggregation query (`GET /api/supplies/defective-report`) is documented in [Advanced Queries](/api/advanced-queries).
+The **Supply** resource records individual product delivery events from suppliers to Ferreandina. Each supply document embeds a lightweight supplier reference and an array of products included in the shipment — each product item carrying its ID, name, and quantity received. The document also tracks the number of defective units found in the delivery and the entry date. All CRUD operations are available at `/api/supplies`. A special defective-report aggregation query (`GET /api/supplies/defective-report`) is documented in [Advanced Queries](/api/advanced-queries).
 
 <Note>
-  The field `defective_quanity` contains a typo — the letter `t` is missing from "quantity". This spelling is present in both `SupplieModel.java` and the MongoDB collection, and must be used exactly as-is when reading or writing this field.
+  The field `defective_quanity` contains a source-level typo — the letter `t` is missing from "quantity". This spelling is present in `SupplieModel.java` and the MongoDB collection, and must be used exactly as-is when reading or writing this field.
+</Note>
+
+<Note>
+  The Java model class is `SupplieModel` (not `SupplyModel`) and its internal field for the supplier is named `suplier` (missing the second `p`). However, the wire-format JSON key in the database seed is `"supplier"`. Use `"supplier"` in all API requests and responses.
 </Note>
 
 ---
@@ -49,7 +53,7 @@ The **Supply** resource records individual product delivery events from supplier
   Number of units found to be defective in this delivery.
 
   <Note>
-    Note the intentional typo in the field name: `defective_quanity` (missing the `t` in "quantity"). Use this exact spelling in all requests and queries.
+    Note the intentional source typo in the field name: `defective_quanity` (missing the `t` in "quantity"). Use this exact spelling in all requests and queries.
   </Note>
 </ResponseField>
 

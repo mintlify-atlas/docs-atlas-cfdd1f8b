@@ -1,7 +1,7 @@
 ---
-title: "Suppliers API: Track Hardware Product Vendors"
+title: "Suppliers API – Manage Hardware Product Vendors CRUD"
 sidebarTitle: "Suppliers"
-description: "CRUD endpoints for hardware suppliers. Supplier records store contact info and link to products and supply deliveries. Base path: /api/suppliers."
+description: "CRUD endpoints for hardware suppliers. Supplier records store the company name, contact email, phone, and image. Base path: /api/suppliers."
 ---
 
 The **Supplier** resource represents a vendor that provides hardware products to Ferreandina. Each supplier document stores the company name, contact email, phone number, and a profile image URL. Suppliers are referenced in two places: as an embedded `supplier` object inside each Product document, and as an embedded `supplier` object inside each Supply (delivery) record. The seed dataset ships with hundreds of supplier entries. All CRUD operations are available at `/api/suppliers`.

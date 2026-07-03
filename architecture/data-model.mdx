@@ -1,7 +1,7 @@
 ---
-title: "MongoDB Collections and Document Schemas"
+title: "Ferreandina NoSQL: MongoDB Collections and Schemas"
 sidebarTitle: "Data Model"
-description: "Ferreandina NoSQL uses 9 MongoDB collections. Explore the document schemas, field types, and embedded relationships for each collection."
+description: "Ferreandina NoSQL uses 7 MongoDB collections. Explore the document schemas, field types, and embedded relationships for each collection."
 ---
 
 Ferreandina NoSQL stores all data in **MongoDB** using a document model. Unlike relational databases, there are no auto-generated ObjectId keys — every document uses an **integer `_id`** as its primary key, managed by the application. Two collections use embedded arrays to denormalize related data for fast reads: a `branches` document embeds a subset of its assigned `products` and `workers` directly inside the branch document, while the canonical records for those entities live in their own top-level collections.
